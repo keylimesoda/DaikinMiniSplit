@@ -1,0 +1,21 @@
+<Application
+    x:Class="DaikinManagerV2.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:DaikinManagerV2">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Custom accent colors -->
+            <SolidColorBrush x:Key="AccentBrush" Color="#FF9500"/>
+            <SolidColorBrush x:Key="PowerOnBrush" Color="#34C759"/>
+            <SolidColorBrush x:Key="PowerOffBrush" Color="#8E8E93"/>
+            <SolidColorBrush x:Key="ErrorBrush" Color="#FF3B30"/>
+            <SolidColorBrush x:Key="CoolModeBrush" Color="#007AFF"/>
+            <SolidColorBrush x:Key="HeatModeBrush" Color="#FF9500"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

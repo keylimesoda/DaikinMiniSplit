@@ -96,8 +96,50 @@ DaikinManager/
 ├── Converters/
 │   └── TemperatureConverter.cs # C↔F conversion
 └── Assets/
-    └── Icons/                  # Mode and status icons
+    ├── snowflake.svg           # Cool mode icon (custom SVG)
+    └── fan.png                 # Fan mode icon (custom PNG)
 ```
+
+### 3.2 Icon Definitions
+
+All icons use **Segoe Fluent Icons** (WinUI 3 built-in) unless noted otherwise.
+
+#### Mode Icons (ToggleButtons)
+| Mode | Icon | Source | Notes |
+|------|------|--------|-------|
+| **Cool** | ❄️ Snowflake | `Assets/snowflake.svg` | Custom SVG, use `SvgImageSource` |
+| **Heat** | ☀️ Sun/Brightness | FontIcon `&#xE706;` | Segoe Fluent "Brightness" |
+| **Auto** | 🔄 Sync | FontIcon `&#xE793;` | Segoe Fluent "Sync" |
+| **Dry** | ≋ Triple tilde | TextBlock `≋` | Unicode char in Viewbox, scaled |
+| **Fan** | 🌀 Fan blades | `Assets/fan.png` | Custom PNG image |
+
+#### Navigation Icons
+| Tab | Icon | Source |
+|-----|------|--------|
+| Controls | 🎛️ Dial/Adjustment | FontIcon `&#xE9A1;` |
+| Diagnostics | 🔧 Diagnostic | FontIcon `&#xE9D9;` |
+
+#### Status & Info Icons
+| Purpose | Icon | Source |
+|---------|------|--------|
+| App header / Temperature | 🌡️ Thermometer | FontIcon `&#xE9CA;` |
+| Power button | ⏻ Power | FontIcon `&#xE7E8;` |
+| Error state | ⚠️ Warning | FontIcon `&#xE783;` |
+| Compressor | ⚙️ Settings | FontIcon `&#xE945;` |
+| System health | 🩺 Diagnostic | FontIcon `&#xE946;` |
+
+#### Asset Files to Include
+```
+Assets/
+├── snowflake.svg    # Cool mode - custom snowflake design
+└── fan.png          # Fan mode - fan blade icon (20x20 px recommended)
+```
+
+**Implementation Notes:**
+- SVG icons use `<SvgImageSource UriSource="ms-appx:///Assets/snowflake.svg"/>`
+- PNG icons use `<Image Source="ms-appx:///Assets/fan.png" Width="20" Height="20"/>`
+- The Dry mode uses a creative approach: `≋` (triple tilde) character in a Viewbox for consistent sizing
+- All FontIcons should use `FontSize="20"` for mode buttons, larger for headers
 
 ### 3.2 Data Flow
 
@@ -111,7 +153,78 @@ DaikinManager/
    Binding          INotifyProp          async/await
 ```
 
-### 3.3 State Management
+### 3.3 Dependency Injection & Lifetimes
+
+```csharp
+// In App.xaml.cs
+services.AddSingleton<IDaikinApiService, DaikinApiService>();
+services.AddSingleton<ISettingsService, SettingsService>();
+services.AddSingleton<MainViewModel>();      // Owns timer, survives navigation
+services.AddTransient<ControlsViewModel>();  // Fresh per navigation
+services.AddTransient<DiagnosticsViewModel>();
+```
+
+| Component | Lifetime | Rationale |
+|-----------|----------|----------|
+| `DaikinApiService` | Singleton | Owns HttpClient, reuse connections |
+| `SettingsService` | Singleton | Single source of truth for settings |
+| `MainViewModel` | Singleton | Owns refresh timer, connection state |
+| `ControlsViewModel` | Transient | Gets fresh state from MainViewModel |
+| `DiagnosticsViewModel` | Transient | Stateless display of current data |
+
+### 3.4 Navigation & Data Flow
+
+**Tab switching is instant** — no network calls on navigation:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 MainViewModel (Singleton)                    │
+│  ┌─────────────┐  ┌─────────────────┐  ┌────────────────┐   │
+│  │ DaikinState │  │ ConnectionState │  │ RefreshTimer   │   │
+│  │  (cached)   │  │                 │  │ (always runs)  │   │
+│  └──────┬──────┘  └─────────────────┘  └────────────────┘   │
+│         │                                                    │
+│         │  ← Refreshes every 30s in background               │
+└─────────┼────────────────────────────────────────────────────┘
+          │
+    ┌─────┴─────┐
+    │           │
+    ▼           ▼
+┌────────┐  ┌────────┐
+│Controls│  │Diagnos-│   ← Transient VMs read cached state
+│  VM    │  │tics VM │     on construction (instant)
+└────────┘  └────────┘
+```
+
+**Key behaviors:**
+- **On tab switch:** ViewModel created, reads `MainViewModel.DaikinState` — no wait
+- **Background refresh:** Timer runs regardless of active tab
+- **State propagation:** `MainViewModel.DaikinState` changes notify all listeners via `INotifyPropertyChanged`
+
+```csharp
+public partial class ControlsViewModel : ObservableObject
+{
+    private readonly MainViewModel _main;
+    
+    public ControlsViewModel(MainViewModel main)
+    {
+        _main = main;
+        // Instant: just read cached state, no await
+        SyncFromDeviceState(_main.DaikinState);
+        
+        // Subscribe to future updates
+        _main.PropertyChanged += OnMainPropertyChanged;
+    }
+    
+    private void OnMainPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.DaikinState))
+            SyncFromDeviceState(_main.DaikinState);
+    }
+}
+```
+
+### 3.5 State Management
 
 ```csharp
 public enum ConnectionState
@@ -119,16 +232,203 @@ public enum ConnectionState
     Disconnected,   // No connection attempted
     Connecting,     // Request in flight
     Connected,      // Last request succeeded
-    Error           // Last request failed
+    Error           // Last request failed (with message)
 }
 ```
 
 The `MainViewModel` owns:
 - `ConnectionState` (affects status badge)
-- `DaikinState` (latest device data)
+- `DaikinState` (latest device data from API)
+- `SecondsUntilRefresh` (countdown for circular indicator)
 - Auto-refresh timer lifecycle
+- `CancellationTokenSource` for in-flight requests
+- `ErrorMessage` (for Error state)
 
-Page ViewModels observe `MainViewModel.DaikinState` and expose UI-specific properties.
+### 3.6 Staged Settings Model
+
+The `ControlsViewModel` maintains two sets of values:
+
+```csharp
+// From device (read-only, updated on refresh)
+public DaikinState DeviceState { get; }
+
+// User's pending changes (editable)
+public bool StagedPower { get; set; }
+public DaikinMode StagedMode { get; set; }
+public double StagedTemperature { get; set; }
+public FanSpeed StagedFanSpeed { get; set; }
+public SwingMode StagedSwingMode { get; set; }
+
+// True if staged values differ from device
+public bool HasPendingChanges { get; }
+```
+
+**Behavior:**
+- On refresh: `DeviceState` updates, `Staged*` values reset to match
+- User edits: `Staged*` values change, `HasPendingChanges` becomes true
+- Apply button: sends `Staged*` values to device, then refreshes
+- Visual indicator: Apply button could show "*" or highlight when `HasPendingChanges`
+
+### 3.7 Cancellation Strategy
+
+```csharp
+public partial class MainViewModel : ObservableObject
+{
+    private CancellationTokenSource? _refreshCts;
+    
+    private async Task RefreshAsync()
+    {
+        // Cancel any in-flight request
+        _refreshCts?.Cancel();
+        _refreshCts = new CancellationTokenSource();
+        
+        try
+        {
+            var state = await _apiService.GetStateAsync(_refreshCts.Token);
+            // Update state...
+        }
+        catch (OperationCanceledException)
+        {
+            // Intentional cancellation, ignore
+        }
+    }
+}
+```
+
+**Cancel on:**
+- New refresh request starts (debounce overlapping)
+- Window closing
+- Manual disconnect
+
+**Do NOT cancel on:**
+- Page navigation (MainViewModel is singleton, keeps refreshing)
+
+### 3.8 Retry Policy
+
+```csharp
+// For GET requests only (idempotent reads)
+private async Task<T> WithRetryAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken ct)
+{
+    int[] delays = { 1000, 2000, 4000 }; // Exponential backoff
+    
+    for (int attempt = 0; attempt <= delays.Length; attempt++)
+    {
+        try
+        {
+            return await operation(ct);
+        }
+        catch (HttpRequestException) when (attempt < delays.Length)
+        {
+            await Task.Delay(delays[attempt], ct);
+        }
+    }
+    throw; // Final attempt failed
+}
+```
+
+| Request Type | Retry? | Rationale |
+|--------------|--------|----------|
+| `GetStateAsync` | Yes (3 attempts) | Reads are idempotent |
+| `ApplySettingsAsync` | No | Could double-apply settings |
+
+### 3.9 Thread Safety
+
+The `DaikinApiService.GetStateAsync` makes 3 parallel HTTP calls. To avoid race conditions:
+
+```csharp
+public async Task<DaikinState> GetStateAsync(CancellationToken ct)
+{
+    // Parallel fetch - all calls start together
+    var basicTask = GetBasicInfoAsync(ct);
+    var controlTask = GetControlInfoAsync(ct);
+    var sensorTask = GetSensorInfoAsync(ct);
+    
+    await Task.WhenAll(basicTask, controlTask, sensorTask);
+    
+    // Compose immutable record from results (no shared mutable state)
+    return new DaikinState(
+        IsPoweredOn: controlTask.Result.Power,
+        Mode: controlTask.Result.Mode,
+        SetTemperatureC: controlTask.Result.Temperature,
+        FanSpeed: controlTask.Result.FanSpeed,
+        SwingMode: controlTask.Result.SwingMode,
+        IndoorTempC: sensorTask.Result.IndoorTemp,
+        OutdoorTempC: sensorTask.Result.OutdoorTemp,
+        CompressorFrequency: sensorTask.Result.CompressorFreq,
+        ErrorCode: sensorTask.Result.ErrorCode,
+        MacAddress: basicTask.Result.Mac,
+        FirmwareVersion: basicTask.Result.Version,
+        LastUpdated: DateTime.Now
+    );
+}
+```
+
+**Key principle:** Build immutable results from each call, compose into final record. No mutable shared state.
+
+### 3.10 Disposal Pattern
+
+```csharp
+public sealed class DaikinApiService : IDaikinApiService, IDisposable
+{
+    private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private bool _disposed;
+    
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _httpClient.Dispose();
+            _disposed = true;
+        }
+    }
+}
+
+public sealed class MainViewModel : ObservableObject, IDisposable
+{
+    private readonly DispatcherTimer _refreshTimer;
+    private readonly DispatcherTimer _countdownTimer;
+    private CancellationTokenSource? _refreshCts;
+    
+    public void Dispose()
+    {
+        _refreshCts?.Cancel();
+        _refreshCts?.Dispose();
+        _refreshTimer.Stop();
+        _countdownTimer.Stop();
+    }
+}
+```
+
+**Disposal triggers:**
+- `App.OnSuspending` or window close
+- DI container disposal (if using `IHost`)
+
+### 3.11 Input Debounce
+
+The arc dial fires continuous value changes during drag. Debounce to prevent UI jank:
+
+```csharp
+private DispatcherTimer? _debounceTimer;
+
+private void OnDialValueChanged(double newValue)
+{
+    _debounceTimer?.Stop();
+    _debounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+    _debounceTimer.Tick += (s, e) =>
+    {
+        _debounceTimer.Stop();
+        StagedTemperature = newValue;  // Actually update binding
+    };
+    _debounceTimer.Start();
+}
+```
+
+**Debounce values:**
+| Control | Debounce | Rationale |
+|---------|----------|----------|
+| Temperature dial | 100ms | Smooth drag, prevent binding thrash |
+| Mode buttons | None | Discrete clicks |
+| Dropdowns | None | Single selection |
 
 ---
 
@@ -146,53 +446,70 @@ Page ViewModels observe `MainViewModel.DaikinState` and expose UI-specific prope
 ### 4.2 Navigation Structure
 
 ```
-┌────────────────────────────────┐
-│  ☰  Daikin Controller    ● ── │  ← Custom title bar with status
-├────────────────────────────────┤
-│  ┌──────────────────────────┐  │
-│  │  🌡️ Controls            │  │  ← NavigationView
-│  │  📊 Diagnostics          │  │
-│  └──────────────────────────┘  │
-├────────────────────────────────┤
-│                                │
-│     [ Page Content ]           │  ← Frame
-│                                │
-└────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  🌡️ Daikin Manager    [Connected]  │  ← Title bar with status badge
+├─────────────────────────────────────┤
+│  ┌─────────────┬─────────────┐      │
+│  │  Controls   │ Diagnostics │      │  ← Tab buttons (not NavigationView)
+│  └─────────────┴─────────────┘      │
+├─────────────────────────────────────┤
+│                                     │
+│        [ Page Content ]             │  ← Frame
+│                                     │
+│                                     │
+│                   Updated 15s ago   │  ← Subtle timestamp
+└─────────────────────────────────────┘
 ```
+
+**Navigation Choice:** Simple tab buttons instead of NavigationView. With only 2 pages, a hamburger menu adds unnecessary complexity.
 
 ### 4.3 Controls Page Layout
 
 ```
-┌────────────────────────────────┐
-│        CURRENT TEMP            │
-│           72°F                 │  ← Large display
-│      Indoor  │  Outdoor        │
-│       72°F   │   45°F          │
-├────────────────────────────────┤
-│  Power                    [◉]  │  ← ToggleSwitch
-├────────────────────────────────┤
-│  Mode                          │
-│  ┌────┬────┬────┬────┐        │
-│  │Cool│Heat│ Dry│Fan │        │  ← SegmentedControl or RadioButtons
-│  └────┴────┴────┴────┘        │
-├────────────────────────────────┤
-│  Set Temperature               │
-│      ┌─────────────┐           │
-│   -  │    70°F     │  +        │  ← NumberBox with buttons
-│      └─────────────┘           │
-│   ════════════════════         │  ← Slider (60-86°F)
-├────────────────────────────────┤
-│  Fan Speed                     │
-│  ┌────┬────┬────┬────┬────┐   │
-│  │Auto│Quiet│ Lo │Med │ Hi │   │
-│  └────┴────┴────┴────┴────┘   │
-├────────────────────────────────┤
-│  Swing                         │
-│  ┌────┬────┬────┬────┐        │
-│  │Off │Vert│Horz│Both│        │
-│  └────┴────┴────┴────┘        │
-└────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  ┌─────────────────────────────┐    │
+│  │    ⏻  POWER: ON             │    │  ← Prominent power button (E7E8)
+│  └─────────────────────────────┘    │     Green=ON, Gray=OFF
+├─────────────────────────────────────┤
+│  Mode                               │
+│  ┌─────┬─────┬─────┬─────┬─────┐   │
+│  │ ❄️  │ ☀️  │ 🔄  │ ≋  │ 🌀  │   │  ← Icon buttons with labels
+│  │Cool │Heat │Auto │ Dry │ Fan │   │     Selected = highlighted
+│  │(SVG)│E706 │E793 │text │(PNG)│   │
+│  └─────┴─────┴─────┴─────┴─────┘   │
+├─────────────────────────────────────┤
+│                                     │
+│            ╭─────────╮              │
+│          ╭─┤  ○      ├─╮            │  ← Draggable arc dial
+│         ╱              ╲            │     Orange/blue arc based on mode
+│        │                │           │
+│        │     76°F       │           │  ← Setpoint (large, centered)
+│        │                │           │
+│         ╲              ╱            │
+│          ╰────────────╯             │
+│         Actual: 73.4°F              │  ← Indoor temp (small, below)
+│                                     │
+├─────────────────────────────────────┤
+│  Fan Speed       ┌────────────────┐ │
+│                  │ Auto         ▼ │ │  ← ComboBox dropdown
+│                  └────────────────┘ │
+├─────────────────────────────────────┤
+│  Swing           ┌────────────────┐ │
+│                  │ Vertical     ▼ │ │  ← ComboBox dropdown
+│                  └────────────────┘ │
+├─────────────────────────────────────┤
+│  ┌─────────────────────────────┐    │
+│  │      APPLY SETTINGS         │    │  ← Primary action button
+│  └─────────────────────────────┘    │     Orange accent color
+└─────────────────────────────────────┘
 ```
+
+**Key Design Decisions:**
+- **Power button** is prominent and colored (most common action)
+- **Arc dial** for temperature - tactile, Nest-like, intuitive for HVAC
+- **Setpoint vs Actual** clearly differentiated (large vs small)
+- **Dropdowns** for Fan/Swing (5+ options don't fit well as buttons)
+- **Explicit Apply button** batches changes (fewer API calls, prevents accidents)
 
 ### 4.4 Diagnostics Page Layout
 
@@ -227,14 +544,61 @@ Page ViewModels observe `MainViewModel.DaikinState` and expose UI-specific prope
 
 ### 4.5 Connection States UI
 
-| State | Status Badge | Page Content |
-|-------|--------------|--------------|
-| `Disconnected` | Gray "Offline" | "Connect" button |
-| `Connecting` | Blue "Connecting..." | ProgressRing + "Connecting..." |
-| `Connected` | Green "Connected" | Normal controls |
-| `Error` | Red "Offline" | Error message + "Retry" button |
+| State | Status Badge | Page Content | Notes |
+|-------|--------------|--------------|-------|
+| `Disconnected` | Gray "Not Connected" | "Connect" button | Never attempted |
+| `Connecting` | Blue "Connecting..." | ProgressRing overlay | Request in flight |
+| `Connected` | Green "Connected" | Normal controls | Shows refresh countdown |
+| `Error` | Red "Connection Lost" | Error message + "Retry" | Distinct from Disconnected |
 
-### 4.6 Accessibility Requirements
+### 4.6 Refresh Countdown Indicator
+
+A small circular progress indicator shows time until next auto-refresh:
+
+```
+┌─────────────────────────────────────┐
+│  🌡️ Daikin Manager    [Connected] ◐ │  ← Circular countdown (30→0s)
+└─────────────────────────────────────┘
+
+◯ = Just refreshed (full)
+◔ = 75% remaining
+◑ = 50% remaining  
+◕ = 25% remaining
+● = Refreshing now (spinning)
+⚠ = Refresh failed (tap to retry)
+```
+
+**Implementation:**
+```csharp
+// In MainViewModel
+public int SecondsUntilRefresh { get; private set; } = 30;
+public bool IsRefreshing { get; private set; }
+public bool RefreshFailed { get; private set; }
+
+// 1-second countdown timer
+private void OnCountdownTick()
+{
+    SecondsUntilRefresh--;
+    if (SecondsUntilRefresh <= 0)
+        _ = RefreshAsync();
+}
+```
+
+**Visual states:**
+- Normal: Arc fills counter-clockwise as countdown progresses
+- Refreshing: Indeterminate spin animation
+- Failed: Red warning icon, tappable to retry
+
+### 4.7 Loading States
+
+| Action | UI Feedback |
+|--------|-------------|
+| Initial connect | Full-page ProgressRing with "Connecting..." |
+| Apply settings | Apply button shows spinner, text becomes "Applying..." |
+| Auto-refresh | Countdown indicator spins |
+| Manual refresh | Countdown indicator spins |
+
+### 4.8 Accessibility Requirements
 
 - All controls must have `AutomationProperties.Name`
 - Keyboard navigation for all interactive elements
@@ -299,24 +663,29 @@ Page ViewModels observe `MainViewModel.DaikinState` and expose UI-specific prope
 ```csharp
 public enum DaikinMode
 {
-    Cool = 3,
-    Heat = 4,
-    Dry = 2,
-    Fan = 6
+    Auto = 0,   // Automatic mode selection
+    Dry = 2,    // Dehumidify
+    Cool = 3,   // Cooling
+    Heat = 4,   // Heating
+    Fan = 6     // Fan only (no compressor)
 }
 ```
+
+**UI Display Order:** Cool, Heat, Auto, Dry, Fan (by frequency of use)
 
 ### 7.2 FanSpeed
 ```csharp
 public enum FanSpeed
 {
-    Auto,   // "A"
-    Silent, // "B"
+    Auto,   // "A" - Automatic speed
+    Quiet,  // "B" - Silent/low noise mode
     Low,    // "3"
     Medium, // "5"
     High    // "7"
 }
 ```
+
+**Note:** Use "Quiet" (not "Silent") in UI - implies reduced noise while still having airflow.
 
 ### 7.3 SwingMode
 ```csharp
@@ -359,14 +728,21 @@ public record DaikinState(
 ```csharp
 public interface IDaikinApiService
 {
+    /// <summary>Get current device state (control info + sensor info + basic info)</summary>
     Task<DaikinState> GetStateAsync(CancellationToken ct = default);
-    Task SetPowerAsync(bool on, CancellationToken ct = default);
-    Task SetModeAsync(DaikinMode mode, CancellationToken ct = default);
-    Task SetTemperatureAsync(double celsius, CancellationToken ct = default);
-    Task SetFanSpeedAsync(FanSpeed speed, CancellationToken ct = default);
-    Task SetSwingModeAsync(SwingMode swing, CancellationToken ct = default);
+    
+    /// <summary>Apply all settings in a single API call</summary>
+    Task ApplySettingsAsync(
+        bool power,
+        DaikinMode mode,
+        double temperatureCelsius,
+        FanSpeed fanSpeed,
+        SwingMode swingMode,
+        CancellationToken ct = default);
 }
 ```
+
+**Design Note:** Single `ApplySettingsAsync` method instead of individual setters. This matches the batched UI pattern (user adjusts multiple settings, then clicks Apply).
 
 ### 9.2 ISettingsService
 ```csharp
@@ -381,7 +757,7 @@ public interface ISettingsService
 
 ---
 
-## 10. Temperature Conversion
+## 10. Temperature Conversion & Validation
 
 ```csharp
 public static class TemperatureConverter
@@ -394,6 +770,45 @@ public static class TemperatureConverter
     public static double ClampFahrenheit(double f) => Math.Clamp(f, 64.0, 86.0);
 }
 ```
+
+### 10.1 Mode-Aware Temperature Validation
+
+Not all modes support temperature control:
+
+```csharp
+public static class ModeValidation
+{
+    /// <summary>
+    /// Returns whether temperature control is applicable for the given mode.
+    /// </summary>
+    public static bool SupportsTemperature(DaikinMode mode) => mode switch
+    {
+        DaikinMode.Cool => true,
+        DaikinMode.Heat => true,
+        DaikinMode.Auto => true,
+        DaikinMode.Dry => false,  // Dehumidify - no temp control
+        DaikinMode.Fan => false,  // Fan only - no temp control
+        _ => false
+    };
+    
+    /// <summary>
+    /// Get the valid temperature range for a mode (in Celsius).
+    /// Returns null if mode doesn't support temperature.
+    /// </summary>
+    public static (double Min, double Max)? GetTemperatureRange(DaikinMode mode) => mode switch
+    {
+        DaikinMode.Cool => (18.0, 30.0),
+        DaikinMode.Heat => (18.0, 30.0),
+        DaikinMode.Auto => (18.0, 30.0),
+        _ => null
+    };
+}
+```
+
+**UI Behavior:**
+- When mode is `Dry` or `Fan`: Disable/hide temperature dial
+- Show "N/A" or dim the temperature display
+- Apply button should not send `stemp` parameter for these modes
 
 ---
 
@@ -470,5 +885,15 @@ public static class TemperatureConverter
 
 ---
 
-*Specification Version: 1.0*  
+*Specification Version: 1.2*  
 *Last Updated: January 26, 2026*
+
+---
+
+## Revision History
+
+| Version | Date | Changes |
+|---------|------|--------|
+| 1.2 | 2026-01-26 | Architecture review: DI lifetimes, cancellation strategy, retry policy, thread safety, disposal pattern, input debounce, refresh countdown indicator, mode-aware temperature validation |
+| 1.1 | 2026-01-26 | UX review: Tab nav, arc dial, Auto mode, batched Apply, first-run flow, loading states |
+| 1.0 | 2026-01-26 | Initial specification |

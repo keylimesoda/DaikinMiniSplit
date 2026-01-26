@@ -1,0 +1,172 @@
+<Page
+    x:Class="DaikinManagerV2.Views.DiagnosticsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="0,0,0,20">
+            
+            <!-- System Status Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" 
+                    Padding="16">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="System Status" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Power:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="PowerStatus" Text="--"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Mode:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ModeStatus" Text="--"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Set Temp:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SetTempStatus" Text="--"/>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Actual Temp:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ActualTempStatus" Text="--"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Compressor Status Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" 
+                    Padding="16">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Compressor" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Frequency:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="CompressorFrequency" Text="-- Hz"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CompressorStatus" Text="--"/>
+                    </Grid>
+                    
+                    <!-- Compressor Load Bar -->
+                    <ProgressBar x:Name="CompressorProgress" 
+                                 Minimum="0" 
+                                 Maximum="120" 
+                                 Value="0" 
+                                 Height="8"
+                                 CornerRadius="4"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Fan Status Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" 
+                    Padding="16">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Fan" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Speed:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="FanSpeedStatus" Text="--"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="RPM:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="FanRpmStatus" Text="-- RPM"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Swing:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SwingStatus" Text="--"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Error Status Card -->
+            <Border x:Name="ErrorCard"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" 
+                    Padding="16"
+                    Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE7BA;" Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                        <TextBlock Text="Error" Style="{StaticResource SubtitleTextBlockStyle}" Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                    </StackPanel>
+                    <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Device Info Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" 
+                    Padding="16">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Device Information" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="IP Address:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="IpAddressText" Text="--"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="MAC Address:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MacAddressText" Text="--"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Firmware:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="FirmwareText" Text="--"/>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Model:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ModelText" Text="--"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Raw Data (Expandable) -->
+            <Expander Header="Raw Sensor Data" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" 
+                        CornerRadius="4" 
+                        Padding="12">
+                    <TextBlock x:Name="RawDataText" 
+                               Text="No data available"
+                               FontFamily="Consolas"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               IsTextSelectionEnabled="True"/>
+                </Border>
+            </Expander>
+            
+        </StackPanel>
+    </ScrollViewer>
+</Page>
