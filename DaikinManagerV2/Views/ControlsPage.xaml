@@ -51,6 +51,7 @@
             <Button x:Name="PowerButton" 
                     HorizontalAlignment="Stretch" 
                     Height="60"
+                    Margin="0,-2,0,0"
                     Click="PowerButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="12">
                     <FontIcon x:Name="PowerIcon" Glyph="&#xE7E8;" FontSize="24"/>
@@ -81,11 +82,13 @@
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <ToggleButton x:Name="ModeCool" Click="ModeButton_Click" Tag="Cool"
                                               ToolTipService.ToolTip="Cool" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <Image x:Name="CoolIcon" Width="20" Height="20">
-                                        <Image.Source>
-                                            <SvgImageSource UriSource="ms-appx:///Assets/snowflake.svg"/>
-                                        </Image.Source>
-                                    </Image>
+                                    <Border Width="20" Height="20">
+                                        <Image x:Name="CoolIcon" Width="24" Height="24" Margin="-2" Stretch="Uniform">
+                                            <Image.Source>
+                                                <SvgImageSource UriSource="ms-appx:///Assets/snowflake.svg"/>
+                                            </Image.Source>
+                                        </Image>
+                                    </Border>
                                 </ToggleButton>
                                 <TextBlock x:Name="ModeCoolLabel" Text="Cool" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
