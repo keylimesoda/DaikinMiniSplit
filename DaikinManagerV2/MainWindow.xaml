@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Window
     x:Class="DaikinManagerV2.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -11,37 +12,8 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Title Bar -->
-        <Grid Grid.Row="0" Padding="16,12,16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- App Title -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
-                <FontIcon Glyph="&#xE9CA;" FontSize="24"/>
-                <TextBlock Text="Daikin Manager" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center"/>
-            </StackPanel>
-
-            <!-- Status Badge + Countdown -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                <!-- Connection Status Badge -->
-                <Border x:Name="StatusBadge" 
-                        Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}" 
-                        CornerRadius="4" 
-                        Padding="10,5">
-                    <TextBlock x:Name="StatusText" Text="Not Connected" FontSize="12"/>
-                </Border>
-                
-                <!-- Refresh Countdown Indicator -->
-                <ProgressRing x:Name="RefreshIndicator" 
-                              Width="20" Height="20" 
-                              IsIndeterminate="False"
-                              Visibility="Collapsed"/>
-            </StackPanel>
-        </Grid>
+        <!-- Custom Title Bar (draggable area) -->
+        <Grid x:Name="AppTitleBar" Height="32"/>
 
         <!-- Main Content -->
         <Grid Grid.Row="1" Padding="16,0,16,16">
@@ -50,23 +22,54 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Tab Buttons -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="4" Margin="0,0,0,16">
-                <ToggleButton x:Name="ControlsTab" 
-                              Content="Controls" 
-                              IsChecked="True" 
-                              Click="Tab_Click"
-                              Padding="16,8"
-                              MinWidth="100"/>
-                <ToggleButton x:Name="DiagnosticsTab" 
-                              Content="Diagnostics" 
-                              Click="Tab_Click"
-                              Padding="16,8"
-                              MinWidth="100"/>
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
+                <FontIcon Glyph="&#xE9CA;" FontSize="28"/>
+                <TextBlock Text="Daikin Manager" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center"/>
+                <Border Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}" 
+                        CornerRadius="4" Padding="8,4" VerticalAlignment="Center" x:Name="StatusBadge">
+                    <TextBlock x:Name="StatusText" Text="Connecting..." FontSize="12"/>
+                </Border>
+                <!-- Refresh Countdown Indicator (flipped for reverse spin) -->
+                <ProgressRing x:Name="RefreshIndicator" 
+                              x:FieldModifier="public"
+                              Width="20" Height="20" 
+                              IsIndeterminate="False"
+                              Visibility="Collapsed"
+                              RenderTransformOrigin="0.5,0.5">
+                    <ProgressRing.RenderTransform>
+                        <ScaleTransform ScaleX="-1" ScaleY="1"/>
+                    </ProgressRing.RenderTransform>
+                </ProgressRing>
             </StackPanel>
 
-            <!-- Page Frame -->
-            <Frame x:Name="ContentFrame" Grid.Row="1"/>
+            <!-- Navigation -->
+            <NavigationView Grid.Row="1" 
+                            x:Name="NavView"
+                            IsBackButtonVisible="Collapsed"
+                            IsSettingsVisible="False"
+                            PaneDisplayMode="Top"
+                            Background="Transparent"
+                            SelectionChanged="NavView_SelectionChanged">
+                <NavigationView.Resources>
+                    <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent"/>
+                    <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="Transparent"/>
+                </NavigationView.Resources>
+                <NavigationView.MenuItems>
+                    <NavigationViewItem Content="Controls" Tag="Controls">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE9A1;"/>
+                        </NavigationViewItem.Icon>
+                    </NavigationViewItem>
+                    <NavigationViewItem Content="Diagnostics" Tag="Diagnostics">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE9D9;"/>
+                        </NavigationViewItem.Icon>
+                    </NavigationViewItem>
+                </NavigationView.MenuItems>
+
+                <Frame x:Name="ContentFrame"/>
+            </NavigationView>
         </Grid>
     </Grid>
 </Window>

@@ -1,4 +1,6 @@
+using Microsoft.UI;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using DaikinManagerV2.ViewModels;
 
 namespace DaikinManagerV2.Views;
@@ -30,6 +32,32 @@ public sealed partial class DiagnosticsPage : Page
     {
         var state = _viewModel.DeviceState;
         
+        // Outdoor & System section (with colors!)
+        double outF = state.OutdoorTempC * 9.0 / 5.0 + 32.0;
+        OutsideTempText.Text = $"Outside Temp: {outF:F1}°F ({state.OutdoorTempC:F1}°C)";
+        
+        if (state.CompressorFrequency == 0)
+        {
+            CompressorText.Text = "Compressor: Idle";
+            CompressorText.Foreground = new SolidColorBrush(Colors.Gray);
+        }
+        else
+        {
+            CompressorText.Text = $"Compressor: ACTIVE ({state.CompressorFrequency} Hz)";
+            CompressorText.Foreground = new SolidColorBrush(Colors.Green);
+        }
+        
+        if (state.ErrorCode == 0)
+        {
+            SystemHealthText.Text = "System Health: OK";
+            SystemHealthText.Foreground = new SolidColorBrush(Colors.Green);
+        }
+        else
+        {
+            SystemHealthText.Text = $"ERROR CODE: {state.ErrorCode}";
+            SystemHealthText.Foreground = new SolidColorBrush(Colors.Red);
+        }
+        
         // System Status
         PowerStatus.Text = state.IsPoweredOn ? "ON" : "OFF";
         ModeStatus.Text = state.Mode.ToString();
@@ -46,17 +74,6 @@ public sealed partial class DiagnosticsPage : Page
         FanRpmStatus.Text = "N/A"; // Fan RPM not available in current API
         SwingStatus.Text = state.SwingMode.ToString();
         
-        // Error
-        if (_viewModel.HasError)
-        {
-            ErrorCard.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
-            ErrorText.Text = $"Error Code: {state.ErrorCode}";
-        }
-        else
-        {
-            ErrorCard.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
-        }
-        
         // Device Info
         IpAddressText.Text = _viewModel.IpAddress ?? "--";
         MacAddressText.Text = _viewModel.MacAddress ?? "--";
@@ -64,7 +81,7 @@ public sealed partial class DiagnosticsPage : Page
         ModelText.Text = "--"; // No model in current state
         
         // Raw Data
-        RawDataText.Text = FormatRawData(state);
+        RawSensorText.Text = FormatRawData(state);
     }
 
     private static string FormatRawData(Models.DaikinState state)
@@ -90,5 +107,12 @@ public sealed partial class DiagnosticsPage : Page
             < 90 => "High Load",
             _ => "Maximum"
         };
+    }
+
+    private void RefreshButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        // The diagnostics view model is automatically updated by MainViewModel's polling
+        // This button just triggers a UI refresh
+        UpdateAllUI();
     }
 }

@@ -14,8 +14,6 @@ namespace DaikinManagerV2;
 public sealed partial class MainWindow : Window
 {
     private MainViewModel? _viewModel;
-    private ControlsPage? _controlsPage;
-    private DiagnosticsPage? _diagnosticsPage;
 
     public MainWindow()
     {
@@ -23,6 +21,10 @@ public sealed partial class MainWindow : Window
         
         // Set window title explicitly  
         this.Title = "Daikin Manager V2";
+        
+        // Hide the white Windows title bar by extending content into it
+        this.ExtendsContentIntoTitleBar = true;
+        this.SetTitleBar(AppTitleBar);
         
         // Defer heavy initialization to after the window is created
         this.Activated += MainWindow_Activated;
@@ -45,11 +47,8 @@ public sealed partial class MainWindow : Window
             _viewModel = App.Services.GetRequiredService<MainViewModel>();
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
             
-            // Initialize pages with their ViewModels
-            InitializePages();
-            
-            // Navigate to Controls page by default
-            NavigateToControls();
+            // Select the first navigation item (Controls)
+            NavView.SelectedItem = NavView.MenuItems[0];
             
             // Start connection
             _ = _viewModel.ConnectAsync();
@@ -68,19 +67,6 @@ public sealed partial class MainWindow : Window
         }
     }
     
-    private void InitializePages()
-    {
-        // Create and initialize ControlsPage with ViewModel
-        var controlsVM = App.Services.GetRequiredService<ControlsViewModel>();
-        _controlsPage = new ControlsPage();
-        _controlsPage.Initialize(controlsVM);
-        
-        // Create and initialize DiagnosticsPage with ViewModel
-        var diagnosticsVM = App.Services.GetRequiredService<DiagnosticsViewModel>();
-        _diagnosticsPage = new DiagnosticsPage();
-        _diagnosticsPage.Initialize(diagnosticsVM);
-    }
-
     private AppWindow GetAppWindowForCurrentWindow()
     {
         var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -88,30 +74,37 @@ public sealed partial class MainWindow : Window
         return AppWindow.GetFromWindowId(windowId);
     }
 
-    private void Tab_Click(object sender, RoutedEventArgs e)
+    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (ReferenceEquals(sender, ControlsTab))
+        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
         {
-            ControlsTab.IsChecked = true;
-            DiagnosticsTab.IsChecked = false;
-            NavigateToControls();
-        }
-        else
-        {
-            ControlsTab.IsChecked = false;
-            DiagnosticsTab.IsChecked = true;
-            NavigateToDiagnostics();
+            if (tag == "Controls")
+            {
+                NavigateToControls();
+            }
+            else if (tag == "Diagnostics")
+            {
+                NavigateToDiagnostics();
+            }
         }
     }
     
     private void NavigateToControls()
     {
-        ContentFrame.Content = _controlsPage;
+        ContentFrame.Navigate(typeof(ControlsPage), null);
+        if (ContentFrame.Content is ControlsPage page)
+        {
+            page.Initialize(App.Services.GetRequiredService<ControlsViewModel>());
+        }
     }
     
     private void NavigateToDiagnostics()
     {
-        ContentFrame.Content = _diagnosticsPage;
+        ContentFrame.Navigate(typeof(DiagnosticsPage), null);
+        if (ContentFrame.Content is DiagnosticsPage page)
+        {
+            page.Initialize(App.Services.GetRequiredService<DiagnosticsViewModel>());
+        }
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

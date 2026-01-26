@@ -87,7 +87,7 @@ public sealed partial class ControlsPage : Page
         // Update visual state
         if (isPowerOn)
         {
-            PowerButton.Background = new SolidColorBrush(Color.FromArgb(255, 76, 175, 80)); // Green
+            PowerButton.Background = new SolidColorBrush(Microsoft.UI.Colors.Green);
             PowerIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
             PowerText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
         }
@@ -130,6 +130,15 @@ public sealed partial class ControlsPage : Page
             ModeAuto.IsChecked = mode == DaikinMode.Auto;
             ModeDry.IsChecked = mode == DaikinMode.Dry;
             ModeFan.IsChecked = mode == DaikinMode.Fan;
+            
+            // Update label colors - selected = white, unselected = gray
+            var selectedBrush = new SolidColorBrush(Microsoft.UI.Colors.White);
+            var unselectedBrush = new SolidColorBrush(Color.FromArgb(255, 140, 140, 140));
+            ModeCoolLabel.Foreground = mode == DaikinMode.Cool ? selectedBrush : unselectedBrush;
+            ModeHeatLabel.Foreground = mode == DaikinMode.Heat ? selectedBrush : unselectedBrush;
+            ModeAutoLabel.Foreground = mode == DaikinMode.Auto ? selectedBrush : unselectedBrush;
+            ModeDryLabel.Foreground = mode == DaikinMode.Dry ? selectedBrush : unselectedBrush;
+            ModeFanLabel.Foreground = mode == DaikinMode.Fan ? selectedBrush : unselectedBrush;
             
             // Update temperature slider enabled state based on mode
             bool canSetTemp = _viewModel.StagedPower && mode != DaikinMode.Fan;
@@ -312,8 +321,7 @@ public sealed partial class ControlsPage : Page
     private async void ApplyButton_Click(object sender, RoutedEventArgs e)
     {
         ApplyButton.IsEnabled = false;
-        ApplySpinner.Visibility = Visibility.Visible;
-        ApplyText.Text = "Applying...";
+        ApplyButton.Content = "Applying...";
         
         try
         {
@@ -321,8 +329,7 @@ public sealed partial class ControlsPage : Page
         }
         finally
         {
-            ApplySpinner.Visibility = Visibility.Collapsed;
-            ApplyText.Text = "Apply Settings";
+            ApplyButton.Content = "APPLY SETTINGS";
             UpdateApplyButtonUI();
         }
     }
