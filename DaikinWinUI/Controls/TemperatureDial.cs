@@ -13,6 +13,9 @@ using Path = Microsoft.UI.Xaml.Shapes.Path;
 
 public sealed class TemperatureDial : UserControl
 {
+    private static int _instanceCounter = 0;
+    private readonly int _instanceId;
+    
     private Canvas? _canvas;
     private Ellipse? _knob;
     private TextBlock? _tempText;
@@ -62,12 +65,15 @@ public sealed class TemperatureDial : UserControl
 
     public TemperatureDial()
     {
+        _instanceId = ++_instanceCounter;
+        Console.WriteLine($"[TemperatureDial#{_instanceId}] Created");
         DefaultStyleKey = typeof(TemperatureDial);
         this.Loaded += TemperatureDial_Loaded;
     }
 
     private void TemperatureDial_Loaded(object sender, RoutedEventArgs e)
     {
+        Console.WriteLine($"[TemperatureDial#{_instanceId}_Loaded] Temperature at load time = {Temperature}");
         BuildVisualTree();
     }
 
@@ -152,6 +158,7 @@ public sealed class TemperatureDial : UserControl
 
     private void UpdateVisuals()
     {
+        Console.WriteLine($"[TemperatureDial#{_instanceId}.UpdateVisuals] Temperature={Temperature}, _canvas={_canvas != null}");
         if (_canvas == null || _trackPath == null || _progressPath == null || _knob == null || _tempText == null)
             return;
 
@@ -188,6 +195,7 @@ public sealed class TemperatureDial : UserControl
 
         // Update text
         _tempText.Text = $"{Math.Round(Temperature)}°F";
+        Console.WriteLine($"[TemperatureDial#{_instanceId}] Setting text to: {_tempText.Text}");
         _tempText.Foreground = new SolidColorBrush(color);
     }
 

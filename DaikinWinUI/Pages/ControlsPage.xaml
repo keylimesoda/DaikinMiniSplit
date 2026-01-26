@@ -5,8 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:DaikinManager.Pages"
     xmlns:controls="using:DaikinManager.Controls"
-    Background="Transparent"
-    NavigationCacheMode="Required">
+    Background="Transparent">
 
     <Grid>
         <!-- Loading State -->
@@ -71,11 +70,15 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <!-- Cool = Frigid (cold thermometer) E9CA -->
+                                <!-- Cool = Snowflake SVG -->
                                 <StackPanel Grid.Column="0" Spacing="4">
                                     <ToggleButton x:Name="ModeCool" Click="ModeButton_Click" Tag="Cool"
                                                   ToolTipService.ToolTip="Cool" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                        <FontIcon Glyph="&#xE9CA;" FontSize="20"/>
+                                        <Image Width="20" Height="20">
+                                            <Image.Source>
+                                                <SvgImageSource UriSource="ms-appx:///Assets/snowflake.svg"/>
+                                            </Image.Source>
+                                        </Image>
                                     </ToggleButton>
                                     <TextBlock x:Name="ModeCoolLabel" Text="Cool" FontSize="12" HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -89,29 +92,31 @@
                                     <TextBlock x:Name="ModeHeatLabel" Text="Heat" FontSize="12" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 
-                                <!-- Auto = Sync (circular arrows) E895 -->
+                                <!-- Auto = E793 -->
                                 <StackPanel Grid.Column="2" Spacing="4">
                                     <ToggleButton x:Name="ModeAuto" Click="ModeButton_Click" Tag="Auto"
                                                   ToolTipService.ToolTip="Auto" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                        <FontIcon Glyph="&#xE895;" FontSize="20"/>
+                                        <FontIcon Glyph="&#xE793;" FontSize="20"/>
                                     </ToggleButton>
                                     <TextBlock x:Name="ModeAutoLabel" Text="Auto" FontSize="12" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 
-                                <!-- Dry = Drop (water droplet) EB42 -->
+                                <!-- Dry = triple tilde (3 wavy lines) -->
                                 <StackPanel Grid.Column="3" Spacing="4">
                                     <ToggleButton x:Name="ModeDry" Click="ModeButton_Click" Tag="Dry"
                                                   ToolTipService.ToolTip="Dry" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                        <FontIcon Glyph="&#xEB42;" FontSize="20"/>
+                                        <Viewbox Width="40" Height="40" Margin="-10,-13.5,-10,-6.5" VerticalAlignment="Center">
+                                            <TextBlock Text="≋" FontSize="120"/>
+                                        </Viewbox>
                                     </ToggleButton>
                                     <TextBlock x:Name="ModeDryLabel" Text="Dry" FontSize="12" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 
-                                <!-- Fan = WindDirection (airflow) EBE6 -->
+                                <!-- Fan = custom fan image -->
                                 <StackPanel Grid.Column="4" Spacing="4">
                                     <ToggleButton x:Name="ModeFan" Click="ModeButton_Click" Tag="Fan"
                                                   ToolTipService.ToolTip="Fan Only" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                        <FontIcon Glyph="&#xEBE6;" FontSize="20"/>
+                                        <Image Source="ms-appx:///Assets/fan.png" Width="20" Height="20"/>
                                     </ToggleButton>
                                     <TextBlock x:Name="ModeFanLabel" Text="Fan" FontSize="12" HorizontalAlignment="Center"/>
                                 </StackPanel>

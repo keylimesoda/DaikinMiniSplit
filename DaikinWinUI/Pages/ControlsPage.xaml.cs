@@ -11,7 +11,7 @@ namespace DaikinManager.Pages;
 public sealed partial class ControlsPage : Page
 {
     private DaikinService? _service;
-    private bool _isConnected = false;
+    private bool _dataLoaded = false;  // True ONLY after successful data fetch + UI update
 
     public ControlsPage()
     {
@@ -21,6 +21,12 @@ public sealed partial class ControlsPage : Page
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+        
+        // Reset state - data is NOT loaded yet
+        _dataLoaded = false;
+        
+        // IMMEDIATELY hide controls and show loading - before any async work
+        ShowLoading();
         
         if (e.Parameter is DaikinService service)
         {
@@ -33,7 +39,7 @@ public sealed partial class ControlsPage : Page
             _service.DataRefreshed += OnDataRefreshed;
         }
         
-        // Always show loading and fetch fresh data on navigation
+        // Always fetch fresh data on navigation
         if (_service != null)
         {
             await ConnectAsync();
@@ -46,12 +52,16 @@ public sealed partial class ControlsPage : Page
         
         try
         {
+            if (App.Current is App appStart && appStart.m_window is MainWindow mainWindowStart)
+            {
+                mainWindowStart.ResetAutoRefresh();
+            }
+
             await _service!.RefreshAllAsync();
-            _isConnected = true;
             UpdateUI();
+            _dataLoaded = true;
             ShowControls();
             
-            // Now we're fully connected - update status and start auto-refresh
             if (App.Current is App app && app.m_window is MainWindow mainWindow)
             {
                 mainWindow.SetConnected();
@@ -60,10 +70,9 @@ public sealed partial class ControlsPage : Page
         }
         catch (Exception ex)
         {
-            _isConnected = false;
+            _dataLoaded = false;
             ShowError(ex.Message);
             
-            // Notify MainWindow of connection failure
             if (App.Current is App app && app.m_window is MainWindow mainWindow)
             {
                 mainWindow.SetOffline();
@@ -91,6 +100,9 @@ public sealed partial class ControlsPage : Page
         LoadingPanel.Visibility = Visibility.Collapsed;
         ErrorPanel.Visibility = Visibility.Collapsed;
         ControlsPanel.Visibility = Visibility.Visible;
+        
+        // Force UI update after controls are visible
+        DispatcherQueue.TryEnqueue(() => UpdateUI());
     }
 
     private async void RetryButton_Click(object sender, RoutedEventArgs e)
@@ -111,11 +123,11 @@ public sealed partial class ControlsPage : Page
     {
         DispatcherQueue.TryEnqueue(() =>
         {
-            _isConnected = true;
-            UpdateUI();
-            if (ControlsPanel.Visibility != Visibility.Visible)
+            // Only update UI if we've completed initial load (data was already loaded)
+            // This event fires from auto-refresh timer, so _dataLoaded should already be true
+            if (_dataLoaded)
             {
-                ShowControls();
+                UpdateUI();
             }
         });
     }
@@ -124,6 +136,8 @@ public sealed partial class ControlsPage : Page
     {
         if (_service == null) return;
 
+        Console.WriteLine($"[UpdateUI] Service state: pow={_service.IsPoweredOn}, mode={_service.Mode}, tempC={_service.SetTemperatureC}");
+        
         // Power button
         PowerText.Text = _service.IsPoweredOn ? "POWER: ON" : "POWER: OFF";
         PowerIcon.Glyph = _service.IsPoweredOn ? "\uE7E8" : "\uE7E8";
@@ -134,8 +148,11 @@ public sealed partial class ControlsPage : Page
         SetModeButton(_service.Mode);
 
         // Temperature
-        TempDial.Temperature = DaikinService.CelsiusToFahrenheit(_service.SetTemperatureC);
+        double tempF = DaikinService.CelsiusToFahrenheit(_service.SetTemperatureC);
+        Console.WriteLine($"[UpdateUI] Setting TempDial.Temperature to {tempF}°F (from {_service.SetTemperatureC}°C)");
+        TempDial.Temperature = tempF;
         TempDial.Mode = _service.Mode;
+        Console.WriteLine($"[UpdateUI] After set, TempDial.Temperature = {TempDial.Temperature}");
         
         double actualF = DaikinService.CelsiusToFahrenheit(_service.IndoorTempC);
         ActualTempText.Text = $"Actual: {actualF:F1}°F";

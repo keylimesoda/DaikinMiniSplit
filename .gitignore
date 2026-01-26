@@ -1,0 +1,13 @@
+# Build outputs
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+
+# IDE
+.vs/
+*.user
+
+# Temp files
+*.txt

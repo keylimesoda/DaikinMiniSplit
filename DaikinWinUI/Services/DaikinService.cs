@@ -29,7 +29,7 @@ public class DaikinService
     public DaikinService(string ipAddress)
     {
         _baseUrl = $"http://{ipAddress}";
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
     }
 
     public async Task RefreshAllAsync()
@@ -44,60 +44,51 @@ public class DaikinService
 
     private async Task RefreshBasicInfoAsync()
     {
-        try
-        {
-            var response = await _httpClient.GetStringAsync($"{_baseUrl}/common/basic_info");
-            var data = ParseResponse(response);
-            MacAddress = data.GetValueOrDefault("mac", "--");
-            FirmwareVersion = data.GetValueOrDefault("ver", "--").Replace("_", ".");
-        }
-        catch { /* Ignore */ }
+        var response = await _httpClient.GetStringAsync($"{_baseUrl}/common/basic_info");
+        var data = ParseResponse(response);
+        MacAddress = data.GetValueOrDefault("mac", "--");
+        FirmwareVersion = data.GetValueOrDefault("ver", "--").Replace("_", ".");
     }
 
     private async Task RefreshControlInfoAsync()
     {
-        try
+        var response = await _httpClient.GetStringAsync($"{_baseUrl}/aircon/get_control_info");
+        Console.WriteLine($"[RefreshControlInfoAsync] RAW: {response}");
+        var data = ParseResponse(response);
+
+        IsPoweredOn = data.GetValueOrDefault("pow", "0") == "1";
+        Mode = ParseMode(data.GetValueOrDefault("mode", "3"));
+        
+        // Reverse hysteresis compensation for display
+        double rawTempC = double.Parse(data.GetValueOrDefault("stemp", "22"));
+        SetTemperatureC = Mode switch
         {
-            var response = await _httpClient.GetStringAsync($"{_baseUrl}/aircon/get_control_info");
-            var data = ParseResponse(response);
+            DaikinMode.Heat => rawTempC - HysteresisOffset,
+            DaikinMode.Cool => rawTempC + HysteresisOffset,
+            _ => rawTempC
+        };
 
-            IsPoweredOn = data.GetValueOrDefault("pow", "0") == "1";
-            Mode = ParseMode(data.GetValueOrDefault("mode", "3"));
-            
-            // Reverse hysteresis compensation for display
-            double rawTempC = double.Parse(data.GetValueOrDefault("stemp", "22"));
-            SetTemperatureC = Mode switch
-            {
-                DaikinMode.Heat => rawTempC - HysteresisOffset,
-                DaikinMode.Cool => rawTempC + HysteresisOffset,
-                _ => rawTempC
-            };
-
-            FanSpeed = ParseFanSpeed(data.GetValueOrDefault("f_rate", "A"));
-            SwingMode = ParseSwingMode(data.GetValueOrDefault("f_dir", "0"));
-        }
-        catch { /* Ignore */ }
+        FanSpeed = ParseFanSpeed(data.GetValueOrDefault("f_rate", "A"));
+        SwingMode = ParseSwingMode(data.GetValueOrDefault("f_dir", "0"));
+        
+        Console.WriteLine($"[RefreshControlInfoAsync] PARSED: pow={IsPoweredOn}, mode={Mode}, tempC={SetTemperatureC}");
     }
 
     private async Task RefreshSensorInfoAsync()
     {
-        try
-        {
-            var response = await _httpClient.GetStringAsync($"{_baseUrl}/aircon/get_sensor_info");
-            var data = ParseResponse(response);
+        var response = await _httpClient.GetStringAsync($"{_baseUrl}/aircon/get_sensor_info");
+        var data = ParseResponse(response);
 
-            if (double.TryParse(data.GetValueOrDefault("htemp", "-"), out var htemp))
-                IndoorTempC = htemp;
-            if (double.TryParse(data.GetValueOrDefault("otemp", "-"), out var otemp))
-                OutdoorTempC = otemp;
-            
-            int.TryParse(data.GetValueOrDefault("cmpfreq", "0"), out var freq);
-            CompressorFrequency = freq;
-            
-            int.TryParse(data.GetValueOrDefault("err", "0"), out var err);
-            ErrorCode = err;
-        }
-        catch { /* Ignore */ }
+        if (double.TryParse(data.GetValueOrDefault("htemp", "-"), out var htemp))
+            IndoorTempC = htemp;
+        if (double.TryParse(data.GetValueOrDefault("otemp", "-"), out var otemp))
+            OutdoorTempC = otemp;
+        
+        int.TryParse(data.GetValueOrDefault("cmpfreq", "0"), out var freq);
+        CompressorFrequency = freq;
+        
+        int.TryParse(data.GetValueOrDefault("err", "0"), out var err);
+        ErrorCode = err;
     }
 
     public async Task SetControlAsync(bool power, DaikinMode mode, double tempF, FanSpeed fan, SwingMode swing)
