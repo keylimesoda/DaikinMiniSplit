@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DaikinManager")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+57345f9b5525d30888a54c22b9d8536116432549")]
 [assembly: System.Reflection.AssemblyProductAttribute("DaikinManager")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DaikinManager")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

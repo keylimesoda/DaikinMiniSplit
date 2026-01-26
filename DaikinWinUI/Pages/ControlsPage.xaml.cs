@@ -1,6 +1,7 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using DaikinManager.Services;
@@ -129,8 +130,8 @@ public sealed partial class ControlsPage : Page
         PowerButton.Background = new SolidColorBrush(
             _service.IsPoweredOn ? Colors.Green : Colors.Gray);
 
-        // Mode
-        ModeComboBox.SelectedIndex = (int)_service.Mode;
+        // Mode - set the correct toggle button
+        SetModeButton(_service.Mode);
 
         // Temperature
         TempDial.Temperature = DaikinService.CelsiusToFahrenheit(_service.SetTemperatureC);
@@ -146,11 +147,33 @@ public sealed partial class ControlsPage : Page
         SwingComboBox.SelectedIndex = (int)_service.SwingMode;
     }
 
-    private void ModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private DaikinMode _selectedMode = DaikinMode.Cool;
+
+    private void SetModeButton(DaikinMode mode)
     {
-        if (ModeComboBox.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+        _selectedMode = mode;
+        ModeCool.IsChecked = mode == DaikinMode.Cool;
+        ModeHeat.IsChecked = mode == DaikinMode.Heat;
+        ModeAuto.IsChecked = mode == DaikinMode.Auto;
+        ModeDry.IsChecked = mode == DaikinMode.Dry;
+        ModeFan.IsChecked = mode == DaikinMode.Fan;
+        
+        // Update label colors - selected = white, unselected = gray
+        var selectedBrush = new SolidColorBrush(Colors.White);
+        var unselectedBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 140, 140, 140));
+        ModeCoolLabel.Foreground = mode == DaikinMode.Cool ? selectedBrush : unselectedBrush;
+        ModeHeatLabel.Foreground = mode == DaikinMode.Heat ? selectedBrush : unselectedBrush;
+        ModeAutoLabel.Foreground = mode == DaikinMode.Auto ? selectedBrush : unselectedBrush;
+        ModeDryLabel.Foreground = mode == DaikinMode.Dry ? selectedBrush : unselectedBrush;
+        ModeFanLabel.Foreground = mode == DaikinMode.Fan ? selectedBrush : unselectedBrush;
+    }
+
+    private void ModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton btn && btn.Tag is string tag)
         {
             var mode = Enum.Parse<DaikinMode>(tag);
+            SetModeButton(mode);
             TempDial.Mode = mode;
         }
     }
@@ -175,7 +198,7 @@ public sealed partial class ControlsPage : Page
 
         try
         {
-            var mode = (DaikinMode)ModeComboBox.SelectedIndex;
+            var mode = _selectedMode;
             var fan = (FanSpeed)FanComboBox.SelectedIndex;
             var swing = (SwingMode)SwingComboBox.SelectedIndex;
 

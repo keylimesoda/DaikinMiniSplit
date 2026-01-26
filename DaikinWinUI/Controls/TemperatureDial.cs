@@ -88,22 +88,22 @@ public sealed class TemperatureDial : UserControl
         // Clear existing content
         var grid = new Grid
         {
-            Width = 180,
-            Height = 180,
+            Width = 280,
+            Height = 280,
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
         _canvas = new Canvas
         {
-            Width = 180,
-            Height = 180
+            Width = 280,
+            Height = 280
         };
 
         // Background track (gray arc)
         _trackPath = new Path
         {
             Stroke = new SolidColorBrush(Colors.LightGray),
-            StrokeThickness = 12,
+            StrokeThickness = 18,
             StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round
         };
@@ -112,7 +112,7 @@ public sealed class TemperatureDial : UserControl
         // Progress arc (colored)
         _progressPath = new Path
         {
-            StrokeThickness = 12,
+            StrokeThickness = 18,
             StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round
         };
@@ -121,8 +121,8 @@ public sealed class TemperatureDial : UserControl
         // Knob
         _knob = new Ellipse
         {
-            Width = 28,
-            Height = 28,
+            Width = 40,
+            Height = 40,
             Stroke = new SolidColorBrush(Colors.White),
             StrokeThickness = 3
         };
@@ -131,7 +131,7 @@ public sealed class TemperatureDial : UserControl
         // Temperature text (center)
         _tempText = new TextBlock
         {
-            FontSize = 28,
+            FontSize = 44,
             FontWeight = Microsoft.UI.Text.FontWeights.Bold,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
@@ -155,7 +155,7 @@ public sealed class TemperatureDial : UserControl
         if (_canvas == null || _trackPath == null || _progressPath == null || _knob == null || _tempText == null)
             return;
 
-        double cx = 90, cy = 90, r = 70;
+        double cx = 140, cy = 140, r = 110;
         double startAngle = 135; // Bottom-left
         double sweepAngle = 270; // To bottom-right
 
@@ -182,8 +182,8 @@ public sealed class TemperatureDial : UserControl
         double knobAngle = (startAngle + progressSweep) * Math.PI / 180;
         double kx = cx + r * Math.Cos(knobAngle);
         double ky = cy + r * Math.Sin(knobAngle);
-        Canvas.SetLeft(_knob, kx - 14);
-        Canvas.SetTop(_knob, ky - 14);
+        Canvas.SetLeft(_knob, kx - 20);
+        Canvas.SetTop(_knob, ky - 20);
         _knob.Fill = new SolidColorBrush(color);
 
         // Update text

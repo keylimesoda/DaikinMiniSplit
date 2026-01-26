@@ -30,11 +30,11 @@
             <TextBlock Text="Unable to connect" 
                        Style="{StaticResource SubtitleTextBlockStyle}"
                        HorizontalAlignment="Center"/>
-            <TextBlock x:ConnectionId='14' x:Name="ErrorMessage" 
+            <TextBlock x:ConnectionId='23' x:Name="ErrorMessage" 
                        Text="Check that the device is online" 
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        HorizontalAlignment="Center"/>
-            <Button x:ConnectionId='15' x:Name="RetryButton" Content="Retry"                           HorizontalAlignment="Center"/>
+            <Button x:ConnectionId='24' x:Name="RetryButton" Content="Retry"                           HorizontalAlignment="Center"/>
         </StackPanel>
 
         <!-- Controls (hidden until connected) -->
@@ -47,8 +47,8 @@
                         Height="60"
                                                  >
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <FontIcon x:ConnectionId='12' x:Name="PowerIcon" Glyph="&#xE7E8;" FontSize="24"/>
-                        <TextBlock x:ConnectionId='13' x:Name="PowerText" Text="POWER: OFF" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <FontIcon x:ConnectionId='21' x:Name="PowerIcon" Glyph="&#xE7E8;" FontSize="24"/>
+                        <TextBlock x:ConnectionId='22' x:Name="PowerText" Text="POWER: OFF" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
@@ -59,33 +59,78 @@
                     
                         <!-- Temperature Section -->
                         <StackPanel Spacing="12">
-                            <TextBlock Text="Temperature" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                            <TextBlock Text="Mode" Style="{StaticResource BodyStrongTextBlockStyle}"/>
                         
-                            <!-- Mode Selector -->
-                            <ComboBox x:ConnectionId='9' x:Name="ModeComboBox" 
-                                      Header="Mode" 
-                                      HorizontalAlignment="Stretch"
-                                                                                      >
-                                <ComboBoxItem Content="Cool" Tag="Cool"/>
-                                <ComboBoxItem Content="Heat" Tag="Heat"/>
-                                <ComboBoxItem Content="Auto" Tag="Auto"/>
-                                <ComboBoxItem Content="Dry" Tag="Dry"/>
-                                <ComboBoxItem Content="Fan" Tag="Fan"/>
-                            </ComboBox>
+                            <!-- Mode Icon Buttons with Labels Below -->
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Cool = Frigid (cold thermometer) E9CA -->
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <ToggleButton x:ConnectionId='19' x:Name="ModeCool"                          Tag="Cool"
+                                                  ToolTipService.ToolTip="Cool" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xE9CA;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:ConnectionId='20' x:Name="ModeCoolLabel" Text="Cool" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Heat = Brightness (sun) E706 -->
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <ToggleButton x:ConnectionId='17' x:Name="ModeHeat"                          Tag="Heat"
+                                                  ToolTipService.ToolTip="Heat" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xE706;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:ConnectionId='18' x:Name="ModeHeatLabel" Text="Heat" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Auto = Sync (circular arrows) E895 -->
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <ToggleButton x:ConnectionId='15' x:Name="ModeAuto"                          Tag="Auto"
+                                                  ToolTipService.ToolTip="Auto" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xE895;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:ConnectionId='16' x:Name="ModeAutoLabel" Text="Auto" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Dry = Drop (water droplet) EB42 -->
+                                <StackPanel Grid.Column="3" Spacing="4">
+                                    <ToggleButton x:ConnectionId='13' x:Name="ModeDry"                          Tag="Dry"
+                                                  ToolTipService.ToolTip="Dry" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xEB42;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:ConnectionId='14' x:Name="ModeDryLabel" Text="Dry" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Fan = WindDirection (airflow) EBE6 -->
+                                <StackPanel Grid.Column="4" Spacing="4">
+                                    <ToggleButton x:ConnectionId='11' x:Name="ModeFan"                          Tag="Fan"
+                                                  ToolTipService.ToolTip="Fan Only" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xEBE6;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:ConnectionId='12' x:Name="ModeFanLabel" Text="Fan" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
                         
                             <!-- Temperature Dial -->
-                            <Grid Height="200" Margin="0,8">
-                                <controls:TemperatureDial x:ConnectionId='11' x:Name="TempDial" 
+                            <Grid Height="250" Margin="0,8,0,0">
+                                <controls:TemperatureDial x:ConnectionId='10' x:Name="TempDial" 
                                                            MinTemperature="60" 
                                                            MaxTemperature="90"
                                                            Temperature="72"/>
                             </Grid>
                         
                             <!-- Actual Temperature -->
-                            <TextBlock x:ConnectionId='10' x:Name="ActualTempText" 
+                            <TextBlock x:ConnectionId='9' x:Name="ActualTempText" 
                                        Text="Actual: --°F" 
                                        HorizontalAlignment="Center"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Margin="0,-20,0,8"/>
                         </StackPanel>
 
                         <!-- Divider -->

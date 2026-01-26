@@ -59,22 +59,66 @@
                     
                         <!-- Temperature Section -->
                         <StackPanel Spacing="12">
-                            <TextBlock Text="Temperature" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                            <TextBlock Text="Mode" Style="{StaticResource BodyStrongTextBlockStyle}"/>
                         
-                            <!-- Mode Selector -->
-                            <ComboBox x:Name="ModeComboBox" 
-                                      Header="Mode" 
-                                      HorizontalAlignment="Stretch"
-                                      SelectionChanged="ModeComboBox_SelectionChanged">
-                                <ComboBoxItem Content="Cool" Tag="Cool"/>
-                                <ComboBoxItem Content="Heat" Tag="Heat"/>
-                                <ComboBoxItem Content="Auto" Tag="Auto"/>
-                                <ComboBoxItem Content="Dry" Tag="Dry"/>
-                                <ComboBoxItem Content="Fan" Tag="Fan"/>
-                            </ComboBox>
+                            <!-- Mode Icon Buttons with Labels Below -->
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Cool = Frigid (cold thermometer) E9CA -->
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <ToggleButton x:Name="ModeCool" Click="ModeButton_Click" Tag="Cool"
+                                                  ToolTipService.ToolTip="Cool" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xE9CA;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:Name="ModeCoolLabel" Text="Cool" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Heat = Brightness (sun) E706 -->
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <ToggleButton x:Name="ModeHeat" Click="ModeButton_Click" Tag="Heat"
+                                                  ToolTipService.ToolTip="Heat" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xE706;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:Name="ModeHeatLabel" Text="Heat" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Auto = Sync (circular arrows) E895 -->
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <ToggleButton x:Name="ModeAuto" Click="ModeButton_Click" Tag="Auto"
+                                                  ToolTipService.ToolTip="Auto" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xE895;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:Name="ModeAutoLabel" Text="Auto" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Dry = Drop (water droplet) EB42 -->
+                                <StackPanel Grid.Column="3" Spacing="4">
+                                    <ToggleButton x:Name="ModeDry" Click="ModeButton_Click" Tag="Dry"
+                                                  ToolTipService.ToolTip="Dry" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xEB42;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:Name="ModeDryLabel" Text="Dry" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Fan = WindDirection (airflow) EBE6 -->
+                                <StackPanel Grid.Column="4" Spacing="4">
+                                    <ToggleButton x:Name="ModeFan" Click="ModeButton_Click" Tag="Fan"
+                                                  ToolTipService.ToolTip="Fan Only" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                        <FontIcon Glyph="&#xEBE6;" FontSize="20"/>
+                                    </ToggleButton>
+                                    <TextBlock x:Name="ModeFanLabel" Text="Fan" FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
                         
                             <!-- Temperature Dial -->
-                            <Grid Height="200" Margin="0,8">
+                            <Grid Height="250" Margin="0,8,0,0">
                                 <controls:TemperatureDial x:Name="TempDial" 
                                                            MinTemperature="60" 
                                                            MaxTemperature="90"
@@ -85,7 +129,8 @@
                             <TextBlock x:Name="ActualTempText" 
                                        Text="Actual: --°F" 
                                        HorizontalAlignment="Center"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Margin="0,-20,0,8"/>
                         </StackPanel>
 
                         <!-- Divider -->
