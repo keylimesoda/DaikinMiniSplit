@@ -44,6 +44,38 @@ public sealed partial class ControlsViewModel : ObservableObject
     /// Whether currently refreshing.
     /// </summary>
     public bool IsRefreshing => _main.IsRefreshing;
+    
+    /// <summary>
+    /// Whether data has been successfully loaded at least once.
+    /// </summary>
+    public bool IsDataLoaded => _main.IsDataLoaded;
+    
+    /// <summary>
+    /// Error message from connection/refresh failures.
+    /// </summary>
+    public string ErrorMessage => _main.ErrorMessage;
+    
+    /// <summary>
+    /// Current page state based on connection and data availability.
+    /// Controls show Loading/Error/Ready panels.
+    /// </summary>
+    public PageState PageState
+    {
+        get
+        {
+            // Once we have data, stay in Ready state (even during subsequent refreshes)
+            // This prevents the UI from flashing back to Loading on every 30-second refresh
+            if (IsDataLoaded)
+                return PageState.Ready;
+            
+            // If there's an error before we ever got data, show error
+            if (ConnectionState == ConnectionState.Error)
+                return PageState.Error;
+            
+            // Otherwise we're loading (initial connection)
+            return PageState.Loading;
+        }
+    }
 
     #endregion
 
@@ -167,6 +199,14 @@ public sealed partial class ControlsViewModel : ObservableObject
     {
         SyncFromDeviceState(DeviceState);
     }
+    
+    /// <summary>
+    /// Retry connection after a failure (delegates to MainViewModel).
+    /// </summary>
+    public async Task RetryConnectionAsync()
+    {
+        await _main.ConnectAsync();
+    }
 
     #endregion
 
@@ -201,10 +241,28 @@ public sealed partial class ControlsViewModel : ObservableObject
                 
             case nameof(MainViewModel.ConnectionState):
                 OnPropertyChanged(nameof(ConnectionState));
+                OnPropertyChanged(nameof(PageState));
                 break;
                 
             case nameof(MainViewModel.IsRefreshing):
                 OnPropertyChanged(nameof(IsRefreshing));
+                break;
+                
+            case nameof(MainViewModel.IsDataLoaded):
+                // CRITICAL: Force sync on first data load BEFORE notifying PageState
+                // When IsDataLoaded becomes true, we MUST sync from actual device state
+                // regardless of HasPendingChanges (which compares to stale defaults)
+                if (_main.IsDataLoaded)
+                {
+                    SyncFromDeviceState(_main.DaikinState);
+                }
+                
+                OnPropertyChanged(nameof(IsDataLoaded));
+                OnPropertyChanged(nameof(PageState));
+                break;
+                
+            case nameof(MainViewModel.ErrorMessage):
+                OnPropertyChanged(nameof(ErrorMessage));
                 break;
         }
     }

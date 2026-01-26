@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using DaikinManagerV2.Models;
 using DaikinManagerV2.ViewModels;
+using DaikinManagerV2.Controls;
 using Windows.UI;
 
 namespace DaikinManagerV2.Views;
@@ -24,8 +25,93 @@ public sealed partial class ControlsPage : Page
         _viewModel = viewModel;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         
-        // Initial UI sync
+        // Listen to temperature changes from dial
+        TempDial.RegisterPropertyChangedCallback(TemperatureDial.TemperatureProperty, OnDialTemperatureChanged);
+        
+        // Set initial page state (will show loading until data arrives)
+        UpdatePageState();
+        
+        // Initial UI sync (only matters once we switch to Ready state)
         SyncUIFromViewModel();
+    }
+    
+    #region Page State Management
+    
+    private void UpdatePageState()
+    {
+        var state = _viewModel.PageState;
+        
+        switch (state)
+        {
+            case Models.PageState.Loading:
+                ShowLoading();
+                break;
+            case Models.PageState.Error:
+                ShowError();
+                break;
+            case Models.PageState.Ready:
+                ShowControls();
+                break;
+        }
+    }
+    
+    private void ShowLoading()
+    {
+        LoadingPanel.Visibility = Visibility.Visible;
+        ErrorPanel.Visibility = Visibility.Collapsed;
+        ControlsPanel.Visibility = Visibility.Collapsed;
+    }
+    
+    private void ShowError()
+    {
+        LoadingPanel.Visibility = Visibility.Collapsed;
+        ErrorPanel.Visibility = Visibility.Visible;
+        ControlsPanel.Visibility = Visibility.Collapsed;
+        
+        // Update error message
+        ErrorMessageText.Text = string.IsNullOrEmpty(_viewModel.ErrorMessage) 
+            ? "Unable to connect to the Daikin unit" 
+            : _viewModel.ErrorMessage;
+    }
+    
+    private void ShowControls()
+    {
+        LoadingPanel.Visibility = Visibility.Collapsed;
+        ErrorPanel.Visibility = Visibility.Collapsed;
+        ControlsPanel.Visibility = Visibility.Visible;
+        
+        // Make sure UI is synced when showing controls
+        SyncUIFromViewModel();
+    }
+    
+    private async void RetryButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Go back to loading state and retry connection
+        await _viewModel.RetryConnectionAsync();
+    }
+    
+    #endregion
+    
+    private void OnDialTemperatureChanged(DependencyObject sender, DependencyProperty dp)
+    {
+        if (_isUpdatingUI) return;
+        
+        // Debounce temperature changes (spec 3.11)
+        _debounceTimer?.Stop();
+        _debounceTimer?.Dispose();
+        
+        _debounceTimer = new System.Timers.Timer(200); // 200ms debounce
+        _debounceTimer.AutoReset = false;
+        _debounceTimer.Elapsed += (s, args) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                double tempF = TempDial.Temperature;
+                double tempC = (tempF - 32.0) * 5.0 / 9.0;
+                _viewModel.StagedTemperatureC = tempC;
+            });
+        };
+        _debounceTimer.Start();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -54,6 +140,14 @@ public sealed partial class ControlsPage : Page
                     break;
                 case nameof(ControlsViewModel.IndoorTemperatureDisplay):
                     UpdateActualTempUI();
+                    break;
+                case nameof(ControlsViewModel.PageState):
+                    UpdatePageState();
+                    break;
+                case nameof(ControlsViewModel.ErrorMessage):
+                    ErrorMessageText.Text = string.IsNullOrEmpty(_viewModel.ErrorMessage) 
+                        ? "Unable to connect to the Daikin unit" 
+                        : _viewModel.ErrorMessage;
                     break;
             }
         });
@@ -110,12 +204,12 @@ public sealed partial class ControlsPage : Page
         ModeDry.IsEnabled = isPowerOn;
         ModeFan.IsEnabled = isPowerOn;
         
-        TempSlider.IsEnabled = isPowerOn && _viewModel.StagedMode != DaikinMode.Fan;
+        TempDial.IsEnabled = isPowerOn && _viewModel.StagedMode != DaikinMode.Fan;
         FanComboBox.IsEnabled = isPowerOn;
         SwingComboBox.IsEnabled = isPowerOn;
         
-        // Visual feedback for temperature section
-        TemperatureSection.Opacity = isPowerOn && _viewModel.StagedMode != DaikinMode.Fan ? 1.0 : 0.5;
+        // Visual feedback for dial only (not the Actual temp text)
+        TempDial.Opacity = isPowerOn && _viewModel.StagedMode != DaikinMode.Fan ? 1.0 : 0.5;
     }
 
     private void UpdateModeButtonsUI()
@@ -142,38 +236,19 @@ public sealed partial class ControlsPage : Page
             
             // Update temperature slider enabled state based on mode
             bool canSetTemp = _viewModel.StagedPower && mode != DaikinMode.Fan;
-            TempSlider.IsEnabled = canSetTemp;
-            TemperatureSection.Opacity = canSetTemp ? 1.0 : 0.5;
+            TempDial.IsEnabled = canSetTemp;
+            TempDial.Opacity = canSetTemp ? 1.0 : 0.5;
             
-            // Update slider range based on mode
-            UpdateTemperatureSliderRange();
-        }
-        finally
-        {
-            _isUpdatingUI = false;
-        }
-    }
-
-    private void UpdateTemperatureSliderRange()
-    {
-        // Mode-aware temperature validation from spec 10.1
-        var (minC, maxC) = _viewModel.StagedMode switch
-        {
-            DaikinMode.Cool => (18.0, 32.0),
-            DaikinMode.Heat => (10.0, 30.0),
-            DaikinMode.Auto => (18.0, 30.0),
-            _ => (18.0, 30.0)
-        };
-        
-        // Convert to Fahrenheit for display (assuming F for now)
-        double minF = minC * 9.0 / 5.0 + 32.0;
-        double maxF = maxC * 9.0 / 5.0 + 32.0;
-        
-        _isUpdatingUI = true;
-        try
-        {
-            TempSlider.Minimum = minF;
-            TempSlider.Maximum = maxF;
+            // Update dial mode for color
+            TempDial.Mode = mode switch
+            {
+                DaikinMode.Cool => DialMode.Cool,
+                DaikinMode.Heat => DialMode.Heat,
+                DaikinMode.Auto => DialMode.Auto,
+                DaikinMode.Dry => DialMode.Dry,
+                DaikinMode.Fan => DialMode.Fan,
+                _ => DialMode.Cool
+            };
         }
         finally
         {
@@ -191,8 +266,7 @@ public sealed partial class ControlsPage : Page
             double tempC = _viewModel.StagedTemperatureC;
             double tempF = tempC * 9.0 / 5.0 + 32.0;
             
-            SetTempText.Text = $"{tempF:F0}°F";
-            TempSlider.Value = tempF;
+            TempDial.Temperature = tempF;
         }
         finally
         {
@@ -259,37 +333,18 @@ public sealed partial class ControlsPage : Page
         {
             if (Enum.TryParse<DaikinMode>(modeStr, out var mode))
             {
-                _viewModel.StagedMode = mode;
+                // Radio button behavior: if clicking the already-selected mode, keep it selected
+                if (mode == _viewModel.StagedMode)
+                {
+                    // Re-check it to prevent deselection
+                    button.IsChecked = true;
+                }
+                else
+                {
+                    _viewModel.StagedMode = mode;
+                }
             }
         }
-    }
-
-    private void TempSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-    {
-        if (_isUpdatingUI) return;
-        
-        // Debounce temperature changes (spec 3.11)
-        _debounceTimer?.Stop();
-        _debounceTimer?.Dispose();
-        
-        _debounceTimer = new System.Timers.Timer(200); // 200ms debounce
-        _debounceTimer.AutoReset = false;
-        _debounceTimer.Elapsed += (s, args) =>
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                double tempF = TempSlider.Value;
-                double tempC = (tempF - 32.0) * 5.0 / 9.0;
-                _viewModel.StagedTemperatureC = tempC;
-                
-                // Update display immediately
-                SetTempText.Text = $"{tempF:F0}°F";
-            });
-        };
-        _debounceTimer.Start();
-        
-        // Update display immediately for responsiveness
-        SetTempText.Text = $"{e.NewValue:F0}°F";
     }
 
     private void FanComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

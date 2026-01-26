@@ -50,6 +50,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private DaikinState _daikinState;
 
+    /// <summary>
+    /// True once we've successfully fetched data at least once.
+    /// Used to determine if controls should be shown.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isDataLoaded;
+
     [ObservableProperty]
     private int _secondsUntilRefresh;
 
@@ -104,6 +111,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             
             DaikinState = state;
             ConnectionState = ConnectionState.Connected;
+            IsDataLoaded = true;  // We now have valid data to display
             ErrorMessage = string.Empty;
             
             // Reset countdown
@@ -132,6 +140,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         StopAutoRefresh();
         _refreshCts?.Cancel();
         ConnectionState = ConnectionState.Disconnected;
+        IsDataLoaded = false;  // Reset data loaded flag
         DaikinState = DaikinState.Default;
     }
 
