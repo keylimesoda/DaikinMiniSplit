@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="DaikinManager.Pages.DiagnosticsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Required">
+
+    <ScrollViewer>
+        <StackPanel Spacing="16" Padding="8">
+            
+            <!-- Sensors Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Outdoor &amp; System" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Outside Temp -->
+                        <FontIcon Grid.Row="0" Grid.Column="0" Glyph="&#xE9CA;" Margin="0,0,12,8"/>
+                        <TextBlock x:ConnectionId='5' Grid.Row="0" Grid.Column="1" x:Name="OutsideTempText" Text="Outside Temp: --" Margin="0,0,0,8"/>
+
+                        <!-- Compressor -->
+                        <FontIcon Grid.Row="1" Grid.Column="0" Glyph="&#xE945;" Margin="0,0,12,8"/>
+                        <TextBlock x:ConnectionId='6' Grid.Row="1" Grid.Column="1" x:Name="CompressorText" Text="Compressor: --" Margin="0,0,0,8"/>
+
+                        <!-- Error Code -->
+                        <FontIcon Grid.Row="2" Grid.Column="0" Glyph="&#xE946;" Margin="0,0,12,0"/>
+                        <TextBlock x:ConnectionId='7' Grid.Row="2" Grid.Column="1" x:Name="ErrorText" Text="System Health: --"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Hardware Info Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Hardware Info" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="MAC:" FontWeight="SemiBold"/>
+                        <TextBlock x:ConnectionId='3' Grid.Row="0" Grid.Column="1" x:Name="MacText" Text="--" FontFamily="Consolas"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Firmware:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock x:ConnectionId='4' Grid.Row="1" Grid.Column="1" x:Name="FirmwareText" Text="--" FontFamily="Consolas" Margin="0,4,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- API Reference Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <Expander Header="API Reference" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Safe Endpoints:" FontWeight="SemiBold"/>
+                        <TextBlock Text="• /aircon/get_control_info" FontFamily="Consolas" FontSize="12"/>
+                        <TextBlock Text="• /aircon/get_sensor_info" FontFamily="Consolas" FontSize="12"/>
+                        <TextBlock Text="• /aircon/set_control_info" FontFamily="Consolas" FontSize="12"/>
+                        <TextBlock Text="• /common/basic_info" FontFamily="Consolas" FontSize="12"/>
+                        
+                        <TextBlock Text="⚠️ Dangerous (causes crash):" FontWeight="SemiBold" Foreground="OrangeRed" Margin="0,8,0,0"/>
+                        <TextBlock Text="• /aircon/get_week_power" FontFamily="Consolas" FontSize="12" Foreground="OrangeRed"/>
+                        <TextBlock Text="• /aircon/get_year_power" FontFamily="Consolas" FontSize="12" Foreground="OrangeRed"/>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <!-- Refresh Button -->
+            <Button x:ConnectionId='2' x:Name="RefreshButton" 
+                    Content="REFRESH DATA" 
+                    HorizontalAlignment="Stretch"
+                    Height="50"
+                                               >
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="F5"/>
+                </Button.KeyboardAccelerators>
+            </Button>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
+
