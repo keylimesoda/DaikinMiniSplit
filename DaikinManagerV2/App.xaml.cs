@@ -24,9 +24,9 @@ public partial class App : Application
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IDaikinApiService, DaikinApiService>();
         
-        // ViewModels
+        // ViewModels (Singleton - shared across MainWindow and Pages)
         services.AddSingleton<MainViewModel>();      // Owns timer, survives navigation
-        services.AddTransient<ControlsViewModel>();  // Fresh per navigation
+        services.AddSingleton<ControlsViewModel>();  // Shared with MainWindow for power button
         services.AddTransient<DiagnosticsViewModel>();
     }
 

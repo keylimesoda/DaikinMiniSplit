@@ -46,18 +46,6 @@
         <!-- Controls Panel - only shown after successful connection AND data fetch -->
         <ScrollViewer x:Name="ControlsPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
             <StackPanel Spacing="16" Padding="8">
-            
-            <!-- Power Button (Live - applies immediately, outside card) -->
-            <Button x:Name="PowerButton" 
-                    HorizontalAlignment="Stretch" 
-                    Height="60"
-                    Margin="0,-2,0,0"
-                    Click="PowerButton_Click">
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <FontIcon x:Name="PowerIcon" Glyph="&#xE7E8;" FontSize="24"/>
-                    <TextBlock x:Name="PowerText" Text="POWER: OFF" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
 
             <!-- Staged Controls Card -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
@@ -156,28 +144,118 @@
                     <!-- Divider -->
                     <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
 
-                    <!-- Fan Speed -->
-                    <ComboBox x:Name="FanComboBox" 
-                              Header="Fan Speed" 
-                              HorizontalAlignment="Stretch"
-                              SelectionChanged="FanComboBox_SelectionChanged">
-                        <ComboBoxItem Content="Auto" Tag="Auto"/>
-                        <ComboBoxItem Content="Quiet" Tag="Quiet"/>
-                        <ComboBoxItem Content="Low" Tag="Low"/>
-                        <ComboBoxItem Content="Medium" Tag="Medium"/>
-                        <ComboBoxItem Content="High" Tag="High"/>
-                    </ComboBox>
+                    <!-- Fan Speed Control -->
+                    <StackPanel x:Name="FanSpeedPanel" Spacing="12">
+                        <!-- Header with Auto toggle - fixed height prevents toggle from expanding row -->
+                        <Grid Height="20">
+                            <TextBlock Text="Fan Speed" FontSize="14" VerticalAlignment="Center"/>
+                            <StackPanel x:Name="AutoTogglePanel" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock x:Name="AutoToggleLabel" Text="Auto" FontSize="13" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ToggleSwitch x:Name="FanAutoToggle" 
+                                              OnContent="" OffContent="" 
+                                              MinWidth="40" MinHeight="20"
+                                              Margin="0,-10,0,-10"
+                                              VerticalAlignment="Center"
+                                              Toggled="FanAutoToggle_Toggled"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Visual intensity bars (4 bars for 4 intensity levels) -->
+                        <Grid x:Name="FanBarsGrid" Height="32" Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="FanBar0" Grid.Column="0" Height="8" CornerRadius="4" Margin="0,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
+                            <Border x:Name="FanBar1" Grid.Column="1" Height="16" CornerRadius="4" Margin="3,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
+                            <Border x:Name="FanBar2" Grid.Column="2" Height="24" CornerRadius="4" Margin="3,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
+                            <Border x:Name="FanBar3" Grid.Column="3" Height="32" CornerRadius="4" Margin="3,0,0,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
+                        </Grid>
+                        
+                        <!-- Slider -->
+                        <Slider x:Name="FanSpeedSlider" 
+                                Minimum="0" Maximum="3" 
+                                StepFrequency="1" 
+                                SnapsTo="StepValues"
+                                TickFrequency="1"
+                                TickPlacement="Outside"
+                                Value="0"
+                                ValueChanged="FanSpeedSlider_ValueChanged"/>
+                        
+                        <!-- Labels under slider -->
+                        <Grid x:Name="FanLabelsGrid" Margin="0,-8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="QuietLabel" Grid.Column="0" Text="Quiet" FontSize="13" HorizontalAlignment="Center" 
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="LowLabel" Grid.Column="1" Text="Low" FontSize="13" HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="MediumLabel" Grid.Column="2" Text="Medium" FontSize="13" HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="HighLabel" Grid.Column="3" Text="High" FontSize="13" HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </Grid>
+                    </StackPanel>
 
                     <!-- Swing Mode -->
-                    <ComboBox x:Name="SwingComboBox" 
-                              Header="Swing" 
-                              HorizontalAlignment="Stretch"
-                              SelectionChanged="SwingComboBox_SelectionChanged">
-                        <ComboBoxItem Content="Stopped" Tag="Off"/>
-                        <ComboBoxItem Content="Vertical" Tag="Vertical"/>
-                        <ComboBoxItem Content="Horizontal" Tag="Horizontal"/>
-                        <ComboBoxItem Content="3D / Both" Tag="Both"/>
-                    </ComboBox>
+                    <StackPanel x:Name="SwingSection" Spacing="8">
+                        <TextBlock Text="Swing" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Off/Stopped -->
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <ToggleButton x:Name="SwingStopped" Click="SwingButton_Click" Tag="Off"
+                                              ToolTipService.ToolTip="Off" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                    <FontIcon Glyph="&#xF140;" FontSize="20"/>
+                                </ToggleButton>
+                                <TextBlock x:Name="SwingStoppedLabel" Text="Off" FontSize="12" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Vertical -->
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <ToggleButton x:Name="SwingVertical" Click="SwingButton_Click" Tag="Vertical"
+                                              ToolTipService.ToolTip="Vertical" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                    <StackPanel Spacing="-6">
+                                        <FontIcon Glyph="&#xE70E;" FontSize="14"/>
+                                        <FontIcon Glyph="&#xE70D;" FontSize="14"/>
+                                    </StackPanel>
+                                </ToggleButton>
+                                <TextBlock x:Name="SwingVerticalLabel" Text="Vertical" FontSize="12" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Horizontal -->
+                            <StackPanel Grid.Column="2" Spacing="4">
+                                <ToggleButton x:Name="SwingHorizontal" Click="SwingButton_Click" Tag="Horizontal"
+                                              ToolTipService.ToolTip="Horizontal" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                    <FontIcon Glyph="&#xE8AB;" FontSize="20"/>
+                                </ToggleButton>
+                                <TextBlock x:Name="SwingHorizontalLabel" Text="Horizontal" FontSize="12" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- 3D / Both -->
+                            <StackPanel Grid.Column="3" Spacing="4">
+                                <ToggleButton x:Name="SwingBoth" Click="SwingButton_Click" Tag="Both"
+                                              ToolTipService.ToolTip="3D / Both" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                    <FontIcon Glyph="&#xE744;" FontSize="20"/>
+                                </ToggleButton>
+                                <TextBlock x:Name="SwingBothLabel" Text="3D" FontSize="12" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
 
                     <!-- Apply Button -->
                     <Button x:Name="ApplyButton" 

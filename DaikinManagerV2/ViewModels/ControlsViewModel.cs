@@ -167,6 +167,47 @@ public sealed partial class ControlsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isApplying;
 
+    [ObservableProperty]
+    private bool _isTogglingPower;
+
+    /// <summary>
+    /// Toggle power immediately (does not wait for Apply Changes).
+    /// Sends the new power state along with current device settings.
+    /// </summary>
+    public async Task SetPowerAsync(bool powerOn)
+    {
+        if (_isTogglingPower) return;
+        
+        try
+        {
+            IsTogglingPower = true;
+            StagedPower = powerOn; // Update UI immediately
+            
+            // Send power change with current device settings (not staged)
+            await _apiService.ApplySettingsAsync(
+                powerOn,
+                DeviceState.Mode,
+                DeviceState.SetTemperatureC,
+                DeviceState.FanSpeed,
+                DeviceState.SwingMode
+            );
+            
+            // Refresh to confirm changes and sync staged state
+            await _main.RefreshAsync();
+            _main.ResetAutoRefresh();
+        }
+        catch
+        {
+            // Revert UI on failure
+            StagedPower = DeviceState.IsPoweredOn;
+            throw;
+        }
+        finally
+        {
+            IsTogglingPower = false;
+        }
+    }
+
     [RelayCommand]
     public async Task ApplySettingsAsync()
     {
@@ -186,6 +227,10 @@ public sealed partial class ControlsViewModel : ObservableObject
             
             // Refresh to confirm changes
             await _main.RefreshAsync();
+            
+            // Sync staged values from the refreshed device state to clear HasPendingChanges
+            SyncFromDeviceState(DeviceState);
+            
             _main.ResetAutoRefresh();
         }
         finally

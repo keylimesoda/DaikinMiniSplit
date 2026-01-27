@@ -62,7 +62,10 @@ public sealed class DaikinApiService : IDaikinApiService
             ErrorCode: sensor.ErrorCode,
             MacAddress: basic.Mac,
             FirmwareVersion: basic.Version,
-            LastUpdated: DateTime.Now
+            LastUpdated: DateTime.Now,
+            RawSensorResponse: sensor.RawResponse,
+            RawControlResponse: control.RawResponse,
+            RawBasicResponse: basic.RawResponse
         );
     }
 
@@ -108,9 +111,9 @@ public sealed class DaikinApiService : IDaikinApiService
 
     #region Private API Helpers
 
-    private record BasicInfo(string Mac, string Version);
-    private record ControlInfo(bool Power, DaikinMode Mode, double Temperature, FanSpeed FanSpeed, SwingMode SwingMode);
-    private record SensorInfo(double IndoorTemp, double OutdoorTemp, int CompressorFreq, int ErrorCode);
+    private record BasicInfo(string Mac, string Version, string RawResponse);
+    private record ControlInfo(bool Power, DaikinMode Mode, double Temperature, FanSpeed FanSpeed, SwingMode SwingMode, string RawResponse);
+    private record SensorInfo(double IndoorTemp, double OutdoorTemp, int CompressorFreq, int ErrorCode, string RawResponse);
 
     private async Task<BasicInfo> GetBasicInfoAsync(CancellationToken ct)
     {
@@ -119,7 +122,8 @@ public sealed class DaikinApiService : IDaikinApiService
         
         return new BasicInfo(
             Mac: data.GetValueOrDefault("mac", "--"),
-            Version: data.GetValueOrDefault("ver", "--").Replace("_", ".")
+            Version: data.GetValueOrDefault("ver", "--").Replace("_", "."),
+            RawResponse: response
         );
     }
 
@@ -145,7 +149,8 @@ public sealed class DaikinApiService : IDaikinApiService
             Mode: mode,
             Temperature: displayTemp,
             FanSpeed: ParseFanSpeed(data.GetValueOrDefault("f_rate", "A")),
-            SwingMode: ParseSwingMode(data.GetValueOrDefault("f_dir", "0"))
+            SwingMode: ParseSwingMode(data.GetValueOrDefault("f_dir", "0")),
+            RawResponse: response
         );
     }
 
@@ -158,7 +163,8 @@ public sealed class DaikinApiService : IDaikinApiService
             IndoorTemp: double.TryParse(data.GetValueOrDefault("htemp", "0"), out var h) ? h : 0,
             OutdoorTemp: double.TryParse(data.GetValueOrDefault("otemp", "0"), out var o) ? o : 0,
             CompressorFreq: int.TryParse(data.GetValueOrDefault("cmpfreq", "0"), out var c) ? c : 0,
-            ErrorCode: int.TryParse(data.GetValueOrDefault("err", "0"), out var e) ? e : 0
+            ErrorCode: int.TryParse(data.GetValueOrDefault("err", "0"), out var e) ? e : 0,
+            RawResponse: response
         );
     }
 

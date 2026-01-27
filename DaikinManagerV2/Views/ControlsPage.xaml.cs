@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Text;
 using DaikinManagerV2.Models;
 using DaikinManagerV2.ViewModels;
 using DaikinManagerV2.Controls;
@@ -121,10 +122,11 @@ public sealed partial class ControlsPage : Page
             switch (e.PropertyName)
             {
                 case nameof(ControlsViewModel.StagedPower):
-                    UpdatePowerButtonUI();
+                    UpdateControlsEnabledState(_viewModel.StagedPower);
                     break;
                 case nameof(ControlsViewModel.StagedMode):
                     UpdateModeButtonsUI();
+                    UpdateFanComboUI(); // Show/hide Auto based on mode
                     break;
                 case nameof(ControlsViewModel.StagedTemperatureC):
                     UpdateTemperatureUI();
@@ -133,7 +135,7 @@ public sealed partial class ControlsPage : Page
                     UpdateFanComboUI();
                     break;
                 case nameof(ControlsViewModel.StagedSwingMode):
-                    UpdateSwingComboUI();
+                    UpdateSwingButtonsUI();
                     break;
                 case nameof(ControlsViewModel.HasPendingChanges):
                     UpdateApplyButtonUI();
@@ -158,11 +160,11 @@ public sealed partial class ControlsPage : Page
         _isUpdatingUI = true;
         try
         {
-            UpdatePowerButtonUI();
+            UpdateControlsEnabledState(_viewModel.StagedPower);
             UpdateModeButtonsUI();
             UpdateTemperatureUI();
             UpdateFanComboUI();
-            UpdateSwingComboUI();
+            UpdateSwingButtonsUI();
             UpdateApplyButtonUI();
             UpdateActualTempUI();
         }
@@ -172,44 +174,43 @@ public sealed partial class ControlsPage : Page
         }
     }
 
-    private void UpdatePowerButtonUI()
-    {
-        bool isPowerOn = _viewModel.StagedPower;
-        
-        PowerText.Text = isPowerOn ? "POWER: ON" : "POWER: OFF";
-        
-        // Update visual state
-        if (isPowerOn)
-        {
-            PowerButton.Background = new SolidColorBrush(Microsoft.UI.Colors.Green);
-            PowerIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
-            PowerText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
-        }
-        else
-        {
-            PowerButton.Background = null; // Default
-            PowerIcon.Foreground = null; // Inherit
-            PowerText.Foreground = null; // Inherit
-        }
-        
-        // Enable/disable mode and temperature controls based on power state
-        UpdateControlsEnabledState(isPowerOn);
-    }
-
     private void UpdateControlsEnabledState(bool isPowerOn)
     {
+        // Mode buttons
         ModeCool.IsEnabled = isPowerOn;
         ModeHeat.IsEnabled = isPowerOn;
         ModeAuto.IsEnabled = isPowerOn;
         ModeDry.IsEnabled = isPowerOn;
         ModeFan.IsEnabled = isPowerOn;
         
-        TempDial.IsEnabled = isPowerOn && _viewModel.StagedMode != DaikinMode.Fan;
-        FanComboBox.IsEnabled = isPowerOn;
-        SwingComboBox.IsEnabled = isPowerOn;
+        // Mode button visual dimming
+        double modeOpacity = isPowerOn ? 1.0 : 0.4;
+        ModeCool.Opacity = modeOpacity;
+        ModeHeat.Opacity = modeOpacity;
+        ModeAuto.Opacity = modeOpacity;
+        ModeDry.Opacity = modeOpacity;
+        ModeFan.Opacity = modeOpacity;
+        ModeCoolLabel.Opacity = modeOpacity;
+        ModeHeatLabel.Opacity = modeOpacity;
+        ModeAutoLabel.Opacity = modeOpacity;
+        ModeDryLabel.Opacity = modeOpacity;
+        ModeFanLabel.Opacity = modeOpacity;
         
-        // Visual feedback for dial only (not the Actual temp text)
-        TempDial.Opacity = isPowerOn && _viewModel.StagedMode != DaikinMode.Fan ? 1.0 : 0.5;
+        // Temperature dial
+        bool canSetTemp = isPowerOn && _viewModel.StagedMode != DaikinMode.Fan;
+        TempDial.IsEnabled = canSetTemp;
+        TempDial.Opacity = canSetTemp ? 1.0 : 0.4;
+        
+        // Fan speed slider
+        FanSpeedSlider.IsEnabled = isPowerOn;
+        FanSpeedPanel.Opacity = isPowerOn ? 1.0 : 0.4;
+        
+        // Swing
+        SwingSection.Opacity = isPowerOn ? 1.0 : 0.4;
+        SwingStopped.IsEnabled = isPowerOn;
+        SwingVertical.IsEnabled = isPowerOn;
+        SwingHorizontal.IsEnabled = isPowerOn;
+        SwingBoth.IsEnabled = isPowerOn;
     }
 
     private void UpdateModeButtonsUI()
@@ -279,33 +280,175 @@ public sealed partial class ControlsPage : Page
         ActualTempText.Text = $"Actual: {_viewModel.IndoorTemperatureDisplay}";
     }
 
+    // Mapping: Slider position -> FanSpeed enum (no Auto on slider anymore)
+    // Slider: 0=Quiet, 1=Low, 2=Med, 3=High
+    // Enum:   Auto=0, Quiet=1, Low=2, Medium=3, High=4
+    private static readonly FanSpeed[] SliderToFanSpeed = { FanSpeed.Quiet, FanSpeed.Low, FanSpeed.Medium, FanSpeed.High };
+    private static readonly int[] FanSpeedToSlider = { 2, 0, 1, 2, 3 }; // Auto->2(Medium default), Quiet->0, Low->1, Med->2, High->3
+    private int _lastManualSliderPos = 2; // Remember last manual setting (default Medium)
+    
     private void UpdateFanComboUI()
     {
         _isUpdatingUI = true;
         try
         {
-            int index = (int)_viewModel.StagedFanSpeed;
-            if (index >= 0 && index < FanComboBox.Items.Count)
+            bool isAuto = _viewModel.StagedFanSpeed == FanSpeed.Auto;
+            FanAutoToggle.IsOn = isAuto;
+            
+            // Hide Auto toggle in Fan-Only mode (Auto not supported)
+            bool isFanOnlyMode = _viewModel.StagedMode == DaikinMode.Fan;
+            FanAutoToggle.Visibility = isFanOnlyMode ? Visibility.Collapsed : Visibility.Visible;
+            AutoToggleLabel.Visibility = isFanOnlyMode ? Visibility.Collapsed : Visibility.Visible;
+            
+            // If in Fan-Only and was on Auto, switch to last manual setting
+            if (isFanOnlyMode && isAuto)
             {
-                FanComboBox.SelectedIndex = index;
+                _viewModel.StagedFanSpeed = SliderToFanSpeed[_lastManualSliderPos];
+                isAuto = false;
             }
+            
+            if (!isAuto)
+            {
+                int enumIndex = (int)_viewModel.StagedFanSpeed;
+                int sliderPos = FanSpeedToSlider[enumIndex];
+                _lastManualSliderPos = sliderPos;
+                FanSpeedSlider.Value = sliderPos;
+            }
+            
+            UpdateFanSpeedVisuals(isAuto);
         }
         finally
         {
             _isUpdatingUI = false;
         }
     }
-
-    private void UpdateSwingComboUI()
+    
+    private void UpdateFanSpeedVisuals(bool isAuto)
     {
+        // Auto uses teal color (same as Auto mode on temp dial)
+        var autoBrush = new SolidColorBrush(Color.FromArgb(255, 60, 179, 113)); // Medium sea green
+        var accentBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+        var accentTextBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+        var mutedBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+        
+        int sliderPos = (int)FanSpeedSlider.Value;
+        
+        // Disable/fade controls when Auto is on
+        FanSpeedSlider.IsEnabled = !isAuto;
+        FanBarsGrid.Opacity = isAuto ? 0.5 : 1.0;
+        FanLabelsGrid.Opacity = isAuto ? 0.5 : 1.0;
+        
+        // Update Auto toggle label color
+        AutoToggleLabel.Foreground = isAuto ? autoBrush : mutedBrush;
+        AutoToggleLabel.FontWeight = isAuto ? FontWeights.Bold : FontWeights.Normal;
+        
+        if (isAuto)
+        {
+            // Auto - all bars visible with teal color
+            FanBar0.Background = autoBrush;
+            FanBar1.Background = autoBrush;
+            FanBar2.Background = autoBrush;
+            FanBar3.Background = autoBrush;
+            FanBar0.Opacity = 1;
+            FanBar1.Opacity = 1;
+            FanBar2.Opacity = 1;
+            FanBar3.Opacity = 1;
+            
+            // All labels muted when Auto
+            QuietLabel.FontWeight = FontWeights.Normal;
+            QuietLabel.Foreground = mutedBrush;
+            LowLabel.FontWeight = FontWeights.Normal;
+            LowLabel.Foreground = mutedBrush;
+            MediumLabel.FontWeight = FontWeights.Normal;
+            MediumLabel.Foreground = mutedBrush;
+            HighLabel.FontWeight = FontWeights.Normal;
+            HighLabel.Foreground = mutedBrush;
+        }
+        else
+        {
+            // Manual mode - accent color bars
+            FanBar0.Background = accentBrush;
+            FanBar1.Background = accentBrush;
+            FanBar2.Background = accentBrush;
+            FanBar3.Background = accentBrush;
+            
+            // Progressive visibility: Quiet=1 bar, Low=2, Med=3, High=4 (all)
+            FanBar0.Opacity = sliderPos >= 0 ? 1 : 0;
+            FanBar1.Opacity = sliderPos >= 1 ? 1 : 0;
+            FanBar2.Opacity = sliderPos >= 2 ? 1 : 0;
+            FanBar3.Opacity = sliderPos >= 3 ? 1 : 0;
+            
+            // Update label styling - highlight selected label
+            TextBlock[] labels = { QuietLabel, LowLabel, MediumLabel, HighLabel };
+            for (int i = 0; i < labels.Length; i++)
+            {
+                if (i == sliderPos)
+                {
+                    labels[i].FontWeight = FontWeights.Bold;
+                    labels[i].Foreground = accentTextBrush;
+                }
+                else
+                {
+                    labels[i].FontWeight = FontWeights.Normal;
+                    labels[i].Foreground = mutedBrush;
+                }
+            }
+        }
+    }
+    
+    private void FanAutoToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingUI) return;
+        
+        bool isAuto = FanAutoToggle.IsOn;
+        if (isAuto)
+        {
+            _viewModel.StagedFanSpeed = FanSpeed.Auto;
+        }
+        else
+        {
+            // Restore last manual setting
+            _viewModel.StagedFanSpeed = SliderToFanSpeed[_lastManualSliderPos];
+        }
+        UpdateFanSpeedVisuals(isAuto);
+    }
+    
+    private void FanSpeedSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        if (_isUpdatingUI) return;
+        
+        int sliderPos = (int)e.NewValue;
+        _lastManualSliderPos = sliderPos;
+        _viewModel.StagedFanSpeed = SliderToFanSpeed[sliderPos];
+        UpdateFanSpeedVisuals(false); // Not auto when slider is changing
+    }
+
+    private void UpdateSwingButtonsUI()
+    {
+        var swing = _viewModel.StagedSwingMode;
+        
         _isUpdatingUI = true;
         try
         {
-            int index = (int)_viewModel.StagedSwingMode;
-            if (index >= 0 && index < SwingComboBox.Items.Count)
-            {
-                SwingComboBox.SelectedIndex = index;
-            }
+            SwingStopped.IsChecked = swing == SwingMode.Off;
+            SwingVertical.IsChecked = swing == SwingMode.Vertical;
+            SwingHorizontal.IsChecked = swing == SwingMode.Horizontal;
+            SwingBoth.IsChecked = swing == SwingMode.Both;
+            
+            // Update label colors - use accent color for selected (consistent with fan speed labels)
+            var accentBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+            var mutedBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+            
+            SwingStoppedLabel.Foreground = swing == SwingMode.Off ? accentBrush : mutedBrush;
+            SwingVerticalLabel.Foreground = swing == SwingMode.Vertical ? accentBrush : mutedBrush;
+            SwingHorizontalLabel.Foreground = swing == SwingMode.Horizontal ? accentBrush : mutedBrush;
+            SwingBothLabel.Foreground = swing == SwingMode.Both ? accentBrush : mutedBrush;
+            
+            // Bold the selected label
+            SwingStoppedLabel.FontWeight = swing == SwingMode.Off ? FontWeights.Bold : FontWeights.Normal;
+            SwingVerticalLabel.FontWeight = swing == SwingMode.Vertical ? FontWeights.Bold : FontWeights.Normal;
+            SwingHorizontalLabel.FontWeight = swing == SwingMode.Horizontal ? FontWeights.Bold : FontWeights.Normal;
+            SwingBothLabel.FontWeight = swing == SwingMode.Both ? FontWeights.Bold : FontWeights.Normal;
         }
         finally
         {
@@ -318,11 +461,6 @@ public sealed partial class ControlsPage : Page
         bool hasChanges = _viewModel.HasPendingChanges;
         ApplyButton.IsEnabled = hasChanges;
         ApplyButton.Opacity = hasChanges ? 1.0 : 0.5;
-    }
-
-    private void PowerButton_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel.StagedPower = !_viewModel.StagedPower;
     }
 
     private void ModeButton_Click(object sender, RoutedEventArgs e)
@@ -347,28 +485,16 @@ public sealed partial class ControlsPage : Page
         }
     }
 
-    private void FanComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void SwingButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isUpdatingUI) return;
         
-        if (FanComboBox.SelectedItem is ComboBoxItem item && item.Tag is string tagStr)
-        {
-            if (Enum.TryParse<FanSpeed>(tagStr, out var speed))
-            {
-                _viewModel.StagedFanSpeed = speed;
-            }
-        }
-    }
-
-    private void SwingComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_isUpdatingUI) return;
-        
-        if (SwingComboBox.SelectedItem is ComboBoxItem item && item.Tag is string tagStr)
+        if (sender is ToggleButton btn && btn.Tag is string tagStr)
         {
             if (Enum.TryParse<SwingMode>(tagStr, out var swing))
             {
                 _viewModel.StagedSwingMode = swing;
+                UpdateSwingButtonsUI();
             }
         }
     }

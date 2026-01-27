@@ -180,6 +180,53 @@
                 </Expander>
             </Border>
 
+            <!-- Raw HTTP Responses -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <Expander x:Name="RawHttpExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Raw HTTP Responses" VerticalAlignment="Center"/>
+                            <ProgressRing x:Name="ConnectingSpinner" Width="14" Height="14" IsActive="True" Visibility="Collapsed" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Name="RawHttpTimestamp" 
+                                   Text="--" 
+                                   FontFamily="Consolas" 
+                                   FontSize="10"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <StackPanel>
+                            <TextBlock Text="/aircon/get_sensor_info" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            <TextBlock x:Name="RawSensorHttpText" 
+                                       Text="--" 
+                                       FontFamily="Consolas" 
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="/aircon/get_control_info" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            <TextBlock x:Name="RawControlHttpText" 
+                                       Text="--" 
+                                       FontFamily="Consolas" 
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="/common/basic_info" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            <TextBlock x:Name="RawBasicHttpText" 
+                                       Text="--" 
+                                       FontFamily="Consolas" 
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
             <!-- Refresh Button -->
             <Button x:Name="RefreshButton" 
                     Content="REFRESH DATA" 

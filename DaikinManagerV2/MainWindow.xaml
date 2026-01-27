@@ -23,25 +23,41 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
-                <FontIcon Glyph="&#xE9CA;" FontSize="28"/>
-                <TextBlock Text="Daikin Manager" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center"/>
-                <Border Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}" 
-                        CornerRadius="4" Padding="8,4" VerticalAlignment="Center" x:Name="StatusBadge">
-                    <TextBlock x:Name="StatusText" Text="Connecting..." FontSize="12"/>
-                </Border>
-                <!-- Refresh Countdown Indicator (flipped for reverse spin) -->
-                <ProgressRing x:Name="RefreshIndicator" 
-                              x:FieldModifier="public"
-                              Width="20" Height="20" 
-                              IsIndeterminate="False"
-                              Visibility="Collapsed"
-                              RenderTransformOrigin="0.5,0.5">
-                    <ProgressRing.RenderTransform>
-                        <ScaleTransform ScaleX="-1" ScaleY="1"/>
-                    </ProgressRing.RenderTransform>
-                </ProgressRing>
-            </StackPanel>
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Left: App Icon + Title + Status -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <FontIcon Glyph="&#xE9CA;" FontSize="28"/>
+                    <TextBlock Text="Daikin Manager" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center"/>
+                    <!-- Subtle status dot -->
+                    <Ellipse x:Name="StatusDot" Width="8" Height="8" VerticalAlignment="Center" Fill="Gray"/>
+                    <!-- Error icon (shown on connection loss) -->
+                    <FontIcon x:Name="ErrorIcon" Glyph="&#xE7BA;" FontSize="14" Foreground="Crimson" Visibility="Collapsed" VerticalAlignment="Center"
+                              ToolTipService.ToolTip="Connection lost - retrying..."/>
+                </StackPanel>
+                
+                <!-- Right: Power Button - custom template for full control -->
+                <Grid x:Name="PowerButton" 
+                      Grid.Column="2"
+                      Width="48" Height="48"
+                      Margin="0,10,6,0"
+                      VerticalAlignment="Top"
+                      PointerEntered="PowerButton_PointerEntered"
+                      PointerExited="PowerButton_PointerExited"
+                      PointerPressed="PowerButton_PointerPressed"
+                      ToolTipService.ToolTip="Toggle Power">
+                    <Border x:Name="PowerButtonBackground" 
+                            Background="Transparent" 
+                            CornerRadius="6"/>
+                    <FontIcon x:Name="PowerIcon" Glyph="&#xE7E8;" FontSize="20" 
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+            </Grid>
 
             <!-- Navigation -->
             <NavigationView Grid.Row="1" 

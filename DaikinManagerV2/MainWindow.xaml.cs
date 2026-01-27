@@ -8,12 +8,14 @@ using DaikinManagerV2.Models;
 using DaikinManagerV2.ViewModels;
 using DaikinManagerV2.Views;
 using Windows.Graphics;
+using Windows.UI;
 
 namespace DaikinManagerV2;
 
 public sealed partial class MainWindow : Window
 {
     private MainViewModel? _viewModel;
+    private ControlsViewModel? _controlsViewModel;
 
     public MainWindow()
     {
@@ -46,6 +48,11 @@ public sealed partial class MainWindow : Window
             // Get MainViewModel from DI
             _viewModel = App.Services.GetRequiredService<MainViewModel>();
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+            
+            // Get ControlsViewModel for power button
+            _controlsViewModel = App.Services.GetRequiredService<ControlsViewModel>();
+            _controlsViewModel.PropertyChanged += ControlsViewModel_PropertyChanged;
+            UpdatePowerButtonUI();
             
             // Select the first navigation item (Controls)
             NavView.SelectedItem = NavView.MenuItems[0];
@@ -113,14 +120,6 @@ public sealed partial class MainWindow : Window
         {
             UpdateStatusBadge();
         }
-        else if (e.PropertyName == nameof(MainViewModel.IsRefreshing))
-        {
-            UpdateRefreshIndicator();
-        }
-        else if (e.PropertyName == nameof(MainViewModel.CountdownProgress))
-        {
-            UpdateRefreshIndicator();
-        }
     }
 
     private void UpdateStatusBadge()
@@ -129,57 +128,105 @@ public sealed partial class MainWindow : Window
         
         DispatcherQueue.TryEnqueue(() =>
         {
+            // Hide all status indicators first
+            StatusDot.Visibility = Visibility.Collapsed;
+            ErrorIcon.Visibility = Visibility.Collapsed;
+            
             switch (_viewModel.ConnectionState)
             {
                 case ConnectionState.Disconnected:
-                    StatusText.Text = "Not Connected";
-                    StatusBadge.Background = new SolidColorBrush(Colors.Gray);
+                    // Show muted gray dot
+                    StatusDot.Fill = new SolidColorBrush(Colors.Gray);
+                    StatusDot.Visibility = Visibility.Visible;
                     break;
                 case ConnectionState.Connecting:
-                    StatusText.Text = "Connecting...";
-                    StatusBadge.Background = new SolidColorBrush(Colors.DodgerBlue);
+                    // Spinner is now shown in DiagnosticsPage
                     break;
                 case ConnectionState.Connected:
-                    StatusText.Text = "Connected";
-                    StatusBadge.Background = new SolidColorBrush(Colors.ForestGreen);
+                    // Hide dot entirely - the functional UI is proof of connection
+                    // This avoids color collision with the green power button
                     break;
                 case ConnectionState.Error:
-                    StatusText.Text = "Connection Lost";
-                    StatusBadge.Background = new SolidColorBrush(Colors.Crimson);
+                    // Show warning icon (error states get maximum visibility)
+                    ErrorIcon.Visibility = Visibility.Visible;
                     break;
             }
         });
     }
 
-    private void UpdateRefreshIndicator()
+    private void ControlsViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (_viewModel == null) return;
-        
+        if (e.PropertyName == nameof(ControlsViewModel.StagedPower))
+        {
+            UpdatePowerButtonUI();
+        }
+    }
+
+    private async void PowerButton_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (_controlsViewModel != null && !_controlsViewModel.IsTogglingPower)
+        {
+            bool newPowerState = !_controlsViewModel.StagedPower;
+            await _controlsViewModel.SetPowerAsync(newPowerState);
+        }
+    }
+
+    private void UpdatePowerButtonUI(bool isHovering = false)
+    {
+        if (_controlsViewModel == null) return;
+
         DispatcherQueue.TryEnqueue(() =>
         {
-            if (_viewModel.ConnectionState != ConnectionState.Connected)
-            {
-                RefreshIndicator.Visibility = Visibility.Collapsed;
-                return;
-            }
+            bool isPowerOn = _controlsViewModel.StagedPower;
             
-            RefreshIndicator.Visibility = Visibility.Visible;
-            
-            if (_viewModel.IsRefreshing)
+            if (isPowerOn)
             {
-                RefreshIndicator.IsIndeterminate = true;
-            }
-            else if (_viewModel.RefreshFailed)
-            {
-                RefreshIndicator.IsIndeterminate = false;
-                RefreshIndicator.Value = 0;
-                // Could add error styling here
+                if (isHovering)
+                {
+                    // ON + Hover: Show button surface to indicate clickable area
+                    PowerButtonBackground.Background = new SolidColorBrush(Color.FromArgb(255, 60, 60, 60)); // Dark surface
+                    PowerIcon.Foreground = new SolidColorBrush(Color.FromArgb(255, 76, 180, 80)); // Keep green icon
+                }
+                else
+                {
+                    // ON, no hover: Transparent background, just green icon
+                    PowerButtonBackground.Background = new SolidColorBrush(Colors.Transparent);
+                    PowerIcon.Foreground = new SolidColorBrush(Color.FromArgb(255, 76, 180, 80)); // Bright green
+                }
             }
             else
             {
-                RefreshIndicator.IsIndeterminate = false;
-                RefreshIndicator.Value = _viewModel.CountdownProgress * 100;
+                if (isHovering)
+                {
+                    // OFF + Hover: Very faint green radial gradient to hint at ON state
+                    var gradientBrush = new Microsoft.UI.Xaml.Media.RadialGradientBrush();
+                    gradientBrush.GradientOrigin = new Windows.Foundation.Point(0.5, 0.5);
+                    gradientBrush.Center = new Windows.Foundation.Point(0.5, 0.5);
+                    gradientBrush.RadiusX = 0.6;
+                    gradientBrush.RadiusY = 0.6;
+                    gradientBrush.GradientStops.Add(new GradientStop { Color = Color.FromArgb(60, 76, 140, 80), Offset = 0 }); // Faint green center
+                    gradientBrush.GradientStops.Add(new GradientStop { Color = Color.FromArgb(30, 76, 140, 80), Offset = 0.7 }); // Fade out
+                    gradientBrush.GradientStops.Add(new GradientStop { Color = Colors.Transparent, Offset = 1.0 }); // Transparent edge
+                    PowerButtonBackground.Background = gradientBrush;
+                    PowerIcon.Foreground = new SolidColorBrush(Color.FromArgb(255, 140, 140, 140)); // Slightly brighter gray
+                }
+                else
+                {
+                    // OFF, no hover: Transparent background, just gray icon
+                    PowerButtonBackground.Background = new SolidColorBrush(Colors.Transparent);
+                    PowerIcon.Foreground = new SolidColorBrush(Color.FromArgb(255, 120, 120, 120)); // Muted gray
+                }
             }
         });
+    }
+
+    private void PowerButton_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        UpdatePowerButtonUI(isHovering: true);
+    }
+
+    private void PowerButton_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        UpdatePowerButtonUI(isHovering: false);
     }
 }

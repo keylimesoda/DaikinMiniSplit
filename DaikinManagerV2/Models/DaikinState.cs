@@ -16,7 +16,10 @@ public sealed record DaikinState(
     int ErrorCode,
     string MacAddress,
     string FirmwareVersion,
-    DateTime LastUpdated
+    DateTime LastUpdated,
+    string RawSensorResponse = "",
+    string RawControlResponse = "",
+    string RawBasicResponse = ""
 )
 {
     /// <summary>
@@ -34,6 +37,9 @@ public sealed record DaikinState(
         ErrorCode: 0,
         MacAddress: "--",
         FirmwareVersion: "--",
-        LastUpdated: DateTime.MinValue
+        LastUpdated: DateTime.MinValue,
+        RawSensorResponse: "",
+        RawControlResponse: "",
+        RawBasicResponse: ""
     );
 }

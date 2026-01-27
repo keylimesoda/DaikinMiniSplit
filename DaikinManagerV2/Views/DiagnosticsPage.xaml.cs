@@ -61,8 +61,13 @@ public sealed partial class DiagnosticsPage : Page
         // System Status
         PowerStatus.Text = state.IsPoweredOn ? "ON" : "OFF";
         ModeStatus.Text = state.Mode.ToString();
-        SetTempStatus.Text = $"{state.SetTemperatureC:F1}°C";
-        ActualTempStatus.Text = _viewModel.IndoorTemperatureDisplay;
+        
+        // Show both F and C for temperatures
+        double setTempF = state.SetTemperatureC * 9.0 / 5.0 + 32.0;
+        SetTempStatus.Text = $"{setTempF:F0}°F / {state.SetTemperatureC:F1}°C";
+        
+        double actualTempF = state.IndoorTempC * 9.0 / 5.0 + 32.0;
+        ActualTempStatus.Text = $"{actualTempF:F0}°F / {state.IndoorTempC:F1}°C";
         
         // Compressor
         CompressorFrequency.Text = _viewModel.CompressorDisplay;
@@ -82,6 +87,17 @@ public sealed partial class DiagnosticsPage : Page
         
         // Raw Data
         RawSensorText.Text = FormatRawData(state);
+        
+        // Raw HTTP Responses with timestamp
+        RawHttpTimestamp.Text = $"Last updated: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}";
+        RawSensorHttpText.Text = state.RawSensorResponse ?? "--";
+        RawControlHttpText.Text = state.RawControlResponse ?? "--";
+        RawBasicHttpText.Text = state.RawBasicResponse ?? "--";
+        
+        // Connectivity spinner - show when connecting or polling
+        ConnectingSpinner.Visibility = _viewModel.ConnectionState == Models.ConnectionState.Connecting 
+            ? Microsoft.UI.Xaml.Visibility.Visible 
+            : Microsoft.UI.Xaml.Visibility.Collapsed;
     }
 
     private static string FormatRawData(Models.DaikinState state)

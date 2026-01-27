@@ -36,6 +36,7 @@ public sealed class TemperatureDial : UserControl
     
     // State
     private bool _isDragging;
+    private bool _isKnobHovered;
     private double _animatedTemperature;
     private Color _currentColor;
 
@@ -250,7 +251,42 @@ public sealed class TemperatureDial : UserControl
 
     private void SetupKnobInteractions()
     {
-        // Simple hover tracking, no animations
+        if (_knob == null) return;
+        
+        // Add hover effect to the knob
+        _knob.PointerEntered += (s, e) =>
+        {
+            if (_knob == null || _isKnobHovered) return;
+            _isKnobHovered = true;
+            
+            // Scale up slightly and add glow effect
+            _knob.StrokeThickness = 5;
+            _knob.Width = KnobSize + 4;
+            _knob.Height = KnobSize + 4;
+            
+            // Reposition to keep centered
+            var left = Canvas.GetLeft(_knob);
+            var top = Canvas.GetTop(_knob);
+            Canvas.SetLeft(_knob, left - 2);
+            Canvas.SetTop(_knob, top - 2);
+        };
+        
+        _knob.PointerExited += (s, e) =>
+        {
+            if (_knob == null || _isDragging || !_isKnobHovered) return;
+            _isKnobHovered = false;
+            
+            // Restore normal size
+            _knob.StrokeThickness = 4;
+            _knob.Width = KnobSize;
+            _knob.Height = KnobSize;
+            
+            // Restore position
+            var left = Canvas.GetLeft(_knob);
+            var top = Canvas.GetTop(_knob);
+            Canvas.SetLeft(_knob, left + 2);
+            Canvas.SetTop(_knob, top + 2);
+        };
     }
 
     private void AnimateToTemperature(double targetTemp)
@@ -371,6 +407,7 @@ public sealed class TemperatureDial : UserControl
         {
             _isDragging = false;
             _canvas?.ReleasePointerCapture(e.Pointer);
+            ResetKnobHoverState();
             e.Handled = true;
         }
     }
@@ -378,6 +415,18 @@ public sealed class TemperatureDial : UserControl
     private void Canvas_PointerCaptureLost(object sender, PointerRoutedEventArgs e)
     {
         _isDragging = false;
+        ResetKnobHoverState();
+    }
+    
+    private void ResetKnobHoverState()
+    {
+        if (_knob == null) return;
+        _isKnobHovered = false;
+        _knob.StrokeThickness = 4;
+        _knob.Width = KnobSize;
+        _knob.Height = KnobSize;
+        // Visuals will be repositioned by UpdateVisuals on next update
+        UpdateVisuals(animate: false);
     }
 
     private void Canvas_PointerEntered(object sender, PointerRoutedEventArgs e)
