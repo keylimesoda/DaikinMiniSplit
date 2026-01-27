@@ -5,6 +5,19 @@
     xmlns:local="using:DaikinManagerV2.Views"
     xmlns:controls="using:DaikinManagerV2.Controls">
 
+    <Page.Resources>
+        <!-- Override checked-state background to match unchecked (no background color change on selection) -->
+        <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="{ThemeResource ControlFillColorDefault}"/>
+        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="{ThemeResource ControlFillColorSecondary}"/>
+        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="{ThemeResource ControlFillColorTertiary}"/>
+        
+        <Style x:Key="NoBackgroundChangeToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+    </Page.Resources>
+
     <Grid>
         <!-- Loading Panel - shown while connecting/loading initial data -->
         <StackPanel x:Name="LoadingPanel" 
@@ -68,8 +81,8 @@
                             
                             <!-- Cool -->
                             <StackPanel Grid.Column="0" Spacing="4">
-                                <ToggleButton x:Name="ModeCool" Click="ModeButton_Click" Tag="Cool"
-                                              ToolTipService.ToolTip="Cool" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                <ToggleButton x:Name="ModeCool" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Cool"
+                                              ToolTipService.ToolTip="Cool" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
                                     <Border Width="20" Height="20">
                                         <Image x:Name="CoolIcon" Width="24" Height="24" Margin="-2" Stretch="Uniform">
                                             <Image.Source>
@@ -83,28 +96,28 @@
                             
                             <!-- Heat -->
                             <StackPanel Grid.Column="1" Spacing="4">
-                                <ToggleButton x:Name="ModeHeat" Click="ModeButton_Click" Tag="Heat"
-                                              ToolTipService.ToolTip="Heat" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <FontIcon Glyph="&#xE706;" FontSize="20"/>
+                                <ToggleButton x:Name="ModeHeat" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Heat"
+                                              ToolTipService.ToolTip="Heat" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
+                                    <FontIcon x:Name="HeatIcon" Glyph="&#xE706;" FontSize="20"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="ModeHeatLabel" Text="Heat" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Auto -->
                             <StackPanel Grid.Column="2" Spacing="4">
-                                <ToggleButton x:Name="ModeAuto" Click="ModeButton_Click" Tag="Auto"
-                                              ToolTipService.ToolTip="Auto" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <FontIcon Glyph="&#xE793;" FontSize="20"/>
+                                <ToggleButton x:Name="ModeAuto" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Auto"
+                                              ToolTipService.ToolTip="Auto" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
+                                    <FontIcon x:Name="AutoIcon" Glyph="&#xE793;" FontSize="20"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="ModeAutoLabel" Text="Auto" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Dry -->
                             <StackPanel Grid.Column="3" Spacing="4">
-                                <ToggleButton x:Name="ModeDry" Click="ModeButton_Click" Tag="Dry"
-                                              ToolTipService.ToolTip="Dry" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
+                                <ToggleButton x:Name="ModeDry" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Dry"
+                                              ToolTipService.ToolTip="Dry" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
                                     <Viewbox Width="40" Height="40" Margin="-10,-13.5,-10,-6.5" VerticalAlignment="Center">
-                                        <TextBlock Text="≋" FontSize="120"/>
+                                        <TextBlock x:Name="DryIcon" Text="≋" FontSize="120"/>
                                     </Viewbox>
                                 </ToggleButton>
                                 <TextBlock x:Name="ModeDryLabel" Text="Dry" FontSize="12" HorizontalAlignment="Center"/>
@@ -112,9 +125,9 @@
                             
                             <!-- Fan -->
                             <StackPanel Grid.Column="4" Spacing="4">
-                                <ToggleButton x:Name="ModeFan" Click="ModeButton_Click" Tag="Fan"
-                                              ToolTipService.ToolTip="Fan Only" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <Image Source="ms-appx:///Assets/fan.png" Width="20" Height="20"/>
+                                <ToggleButton x:Name="ModeFan" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Fan"
+                                              ToolTipService.ToolTip="Fan Only" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
+                                    <Image x:Name="FanModeIcon" Source="ms-appx:///Assets/fan.png" Width="20" Height="20"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="ModeFanLabel" Text="Fan" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
@@ -132,13 +145,6 @@
                                                       Mode="Cool"
                                                       HorizontalAlignment="Center"/>
                         </Grid>
-                        
-                        <!-- Actual Temperature -->
-                        <TextBlock x:Name="ActualTempText" 
-                                   Text="Actual: --°F" 
-                                   HorizontalAlignment="Center"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   Margin="0,-20,0,8"/>
                     </StackPanel>
 
                     <!-- Divider -->
@@ -148,7 +154,7 @@
                     <StackPanel x:Name="FanSpeedPanel" Spacing="12">
                         <!-- Header with Auto toggle - fixed height prevents toggle from expanding row -->
                         <Grid Height="20">
-                            <TextBlock Text="Fan Speed" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FanSummaryText" Text="Fan: --" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <StackPanel x:Name="AutoTogglePanel" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <TextBlock x:Name="AutoToggleLabel" Text="Auto" FontSize="13" VerticalAlignment="Center"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
@@ -169,10 +175,10 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Border x:Name="FanBar0" Grid.Column="0" Height="8" CornerRadius="4" Margin="0,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
-                            <Border x:Name="FanBar1" Grid.Column="1" Height="16" CornerRadius="4" Margin="3,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
-                            <Border x:Name="FanBar2" Grid.Column="2" Height="24" CornerRadius="4" Margin="3,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
-                            <Border x:Name="FanBar3" Grid.Column="3" Height="32" CornerRadius="4" Margin="3,0,0,0" VerticalAlignment="Bottom" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0"/>
+                            <Border x:Name="FanBar0" Grid.Column="0" Height="8" CornerRadius="4" Margin="0,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0"/>
+                            <Border x:Name="FanBar1" Grid.Column="1" Height="16" CornerRadius="4" Margin="3,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0"/>
+                            <Border x:Name="FanBar2" Grid.Column="2" Height="24" CornerRadius="4" Margin="3,0,3,0" VerticalAlignment="Bottom" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0"/>
+                            <Border x:Name="FanBar3" Grid.Column="3" Height="32" CornerRadius="4" Margin="3,0,0,0" VerticalAlignment="Bottom" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0"/>
                         </Grid>
                         
                         <!-- Slider -->
@@ -181,7 +187,7 @@
                                 StepFrequency="1" 
                                 SnapsTo="StepValues"
                                 TickFrequency="1"
-                                TickPlacement="Outside"
+                            TickPlacement="None"
                                 Value="0"
                                 ValueChanged="FanSpeedSlider_ValueChanged"/>
                         
@@ -218,39 +224,41 @@
                             
                             <!-- Off/Stopped -->
                             <StackPanel Grid.Column="0" Spacing="4">
-                                <ToggleButton x:Name="SwingStopped" Click="SwingButton_Click" Tag="Off"
-                                              ToolTipService.ToolTip="Off" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <FontIcon Glyph="&#xF140;" FontSize="20"/>
+                                <ToggleButton x:Name="SwingStopped" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Off"
+                                              ToolTipService.ToolTip="Off" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
+                                    <FontIcon x:Name="SwingStoppedIcon" Glyph="&#xF140;" FontSize="20"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="SwingStoppedLabel" Text="Off" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Vertical -->
                             <StackPanel Grid.Column="1" Spacing="4">
-                                <ToggleButton x:Name="SwingVertical" Click="SwingButton_Click" Tag="Vertical"
-                                              ToolTipService.ToolTip="Vertical" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <StackPanel Spacing="-6">
-                                        <FontIcon Glyph="&#xE70E;" FontSize="14"/>
-                                        <FontIcon Glyph="&#xE70D;" FontSize="14"/>
-                                    </StackPanel>
+                                <ToggleButton x:Name="SwingVertical" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Vertical"
+                                              ToolTipService.ToolTip="Vertical" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
+                                    <Grid Height="20">
+                                        <StackPanel VerticalAlignment="Center" Spacing="-6">
+                                            <FontIcon x:Name="SwingVerticalIcon1" Glyph="&#xE70E;" FontSize="14"/>
+                                            <FontIcon x:Name="SwingVerticalIcon2" Glyph="&#xE70D;" FontSize="14"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </ToggleButton>
                                 <TextBlock x:Name="SwingVerticalLabel" Text="Vertical" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Horizontal -->
                             <StackPanel Grid.Column="2" Spacing="4">
-                                <ToggleButton x:Name="SwingHorizontal" Click="SwingButton_Click" Tag="Horizontal"
-                                              ToolTipService.ToolTip="Horizontal" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <FontIcon Glyph="&#xE8AB;" FontSize="20"/>
+                                <ToggleButton x:Name="SwingHorizontal" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Horizontal"
+                                              ToolTipService.ToolTip="Horizontal" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
+                                    <FontIcon x:Name="SwingHorizontalIcon" Glyph="&#xE8AB;" FontSize="20"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="SwingHorizontalLabel" Text="Horizontal" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- 3D / Both -->
                             <StackPanel Grid.Column="3" Spacing="4">
-                                <ToggleButton x:Name="SwingBoth" Click="SwingButton_Click" Tag="Both"
-                                              ToolTipService.ToolTip="3D / Both" Padding="8" HorizontalAlignment="Stretch" MinWidth="0">
-                                    <FontIcon Glyph="&#xE744;" FontSize="20"/>
+                                <ToggleButton x:Name="SwingBoth" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Both"
+                                              ToolTipService.ToolTip="3D / Both" Style="{StaticResource NoBackgroundChangeToggleButtonStyle}">
+                                    <FontIcon x:Name="SwingBothIcon" Glyph="&#xE744;" FontSize="20"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="SwingBothLabel" Text="3D" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>

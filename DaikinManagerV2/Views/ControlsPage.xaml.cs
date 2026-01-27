@@ -15,6 +15,7 @@ public sealed partial class ControlsPage : Page
     private ControlsViewModel _viewModel = null!;
     private bool _isUpdatingUI;
     private System.Timers.Timer? _debounceTimer;
+    private Brush? _fanBarNeutralBrush;
 
     public ControlsPage()
     {
@@ -25,6 +26,9 @@ public sealed partial class ControlsPage : Page
     {
         _viewModel = viewModel;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+        // Capture neutral brush so we can restore after Auto mode uses a special color
+        _fanBarNeutralBrush = FanBar0.Background;
         
         // Listen to temperature changes from dial
         TempDial.RegisterPropertyChangedCallback(TemperatureDial.TemperatureProperty, OnDialTemperatureChanged);
@@ -140,9 +144,6 @@ public sealed partial class ControlsPage : Page
                 case nameof(ControlsViewModel.HasPendingChanges):
                     UpdateApplyButtonUI();
                     break;
-                case nameof(ControlsViewModel.IndoorTemperatureDisplay):
-                    UpdateActualTempUI();
-                    break;
                 case nameof(ControlsViewModel.PageState):
                     UpdatePageState();
                     break;
@@ -166,7 +167,6 @@ public sealed partial class ControlsPage : Page
             UpdateFanComboUI();
             UpdateSwingButtonsUI();
             UpdateApplyButtonUI();
-            UpdateActualTempUI();
         }
         finally
         {
@@ -226,14 +226,33 @@ public sealed partial class ControlsPage : Page
             ModeDry.IsChecked = mode == DaikinMode.Dry;
             ModeFan.IsChecked = mode == DaikinMode.Fan;
             
-            // Update label colors - selected = white, unselected = gray
-            var selectedBrush = new SolidColorBrush(Microsoft.UI.Colors.White);
-            var unselectedBrush = new SolidColorBrush(Color.FromArgb(255, 140, 140, 140));
-            ModeCoolLabel.Foreground = mode == DaikinMode.Cool ? selectedBrush : unselectedBrush;
-            ModeHeatLabel.Foreground = mode == DaikinMode.Heat ? selectedBrush : unselectedBrush;
-            ModeAutoLabel.Foreground = mode == DaikinMode.Auto ? selectedBrush : unselectedBrush;
-            ModeDryLabel.Foreground = mode == DaikinMode.Dry ? selectedBrush : unselectedBrush;
-            ModeFanLabel.Foreground = mode == DaikinMode.Fan ? selectedBrush : unselectedBrush;
+            // Labels: bold + primary for selected, muted for unselected
+            var primaryBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
+            var mutedBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+
+            ModeCoolLabel.Foreground = mode == DaikinMode.Cool ? primaryBrush : mutedBrush;
+            ModeHeatLabel.Foreground = mode == DaikinMode.Heat ? primaryBrush : mutedBrush;
+            ModeAutoLabel.Foreground = mode == DaikinMode.Auto ? primaryBrush : mutedBrush;
+            ModeDryLabel.Foreground = mode == DaikinMode.Dry ? primaryBrush : mutedBrush;
+            ModeFanLabel.Foreground = mode == DaikinMode.Fan ? primaryBrush : mutedBrush;
+
+            ModeCoolLabel.FontWeight = mode == DaikinMode.Cool ? FontWeights.SemiBold : FontWeights.Normal;
+            ModeHeatLabel.FontWeight = mode == DaikinMode.Heat ? FontWeights.SemiBold : FontWeights.Normal;
+            ModeAutoLabel.FontWeight = mode == DaikinMode.Auto ? FontWeights.SemiBold : FontWeights.Normal;
+            ModeDryLabel.FontWeight = mode == DaikinMode.Dry ? FontWeights.SemiBold : FontWeights.Normal;
+            ModeFanLabel.FontWeight = mode == DaikinMode.Fan ? FontWeights.SemiBold : FontWeights.Normal;
+
+            // Icon colors: white when selected, grey when not
+            var whiteBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+            var greyBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorDisabledBrush"];
+            
+            HeatIcon.Foreground = mode == DaikinMode.Heat ? whiteBrush : greyBrush;
+            AutoIcon.Foreground = mode == DaikinMode.Auto ? whiteBrush : greyBrush;
+            DryIcon.Foreground = mode == DaikinMode.Dry ? whiteBrush : greyBrush;
+
+            // Image icons can't be tinted via Foreground; use opacity for selection cue.
+            CoolIcon.Opacity = mode == DaikinMode.Cool ? 1.0 : 0.35;
+            FanModeIcon.Opacity = mode == DaikinMode.Fan ? 1.0 : 0.35;
             
             // Update temperature slider enabled state based on mode
             bool canSetTemp = _viewModel.StagedPower && mode != DaikinMode.Fan;
@@ -273,11 +292,6 @@ public sealed partial class ControlsPage : Page
         {
             _isUpdatingUI = false;
         }
-    }
-
-    private void UpdateActualTempUI()
-    {
-        ActualTempText.Text = $"Actual: {_viewModel.IndoorTemperatureDisplay}";
     }
 
     // Mapping: Slider position -> FanSpeed enum (no Auto on slider anymore)
@@ -327,9 +341,9 @@ public sealed partial class ControlsPage : Page
     {
         // Auto uses teal color (same as Auto mode on temp dial)
         var autoBrush = new SolidColorBrush(Color.FromArgb(255, 60, 179, 113)); // Medium sea green
-        var accentBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
-        var accentTextBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+        var primaryBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
         var mutedBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+        var neutralBarBrush = _fanBarNeutralBrush ?? mutedBrush;
         
         int sliderPos = (int)FanSpeedSlider.Value;
         
@@ -338,9 +352,12 @@ public sealed partial class ControlsPage : Page
         FanBarsGrid.Opacity = isAuto ? 0.5 : 1.0;
         FanLabelsGrid.Opacity = isAuto ? 0.5 : 1.0;
         
-        // Update Auto toggle label color
-        AutoToggleLabel.Foreground = isAuto ? autoBrush : mutedBrush;
-        AutoToggleLabel.FontWeight = isAuto ? FontWeights.Bold : FontWeights.Normal;
+        // Summary label: one prominent readout
+        FanSummaryText.Text = isAuto ? "Fan: Auto" : $"Fan: {SliderPosToLabel(sliderPos)}";
+
+        // Keep the Auto label subtle (acts like an affordance, not the primary readout)
+        AutoToggleLabel.Foreground = mutedBrush;
+        AutoToggleLabel.FontWeight = FontWeights.Normal;
         
         if (isAuto)
         {
@@ -366,11 +383,11 @@ public sealed partial class ControlsPage : Page
         }
         else
         {
-            // Manual mode - accent color bars
-            FanBar0.Background = accentBrush;
-            FanBar1.Background = accentBrush;
-            FanBar2.Background = accentBrush;
-            FanBar3.Background = accentBrush;
+            // Manual mode - neutral bars (avoid competing with dial accent)
+            FanBar0.Background = neutralBarBrush;
+            FanBar1.Background = neutralBarBrush;
+            FanBar2.Background = neutralBarBrush;
+            FanBar3.Background = neutralBarBrush;
             
             // Progressive visibility: Quiet=1 bar, Low=2, Med=3, High=4 (all)
             FanBar0.Opacity = sliderPos >= 0 ? 1 : 0;
@@ -378,14 +395,14 @@ public sealed partial class ControlsPage : Page
             FanBar2.Opacity = sliderPos >= 2 ? 1 : 0;
             FanBar3.Opacity = sliderPos >= 3 ? 1 : 0;
             
-            // Update label styling - highlight selected label
+            // Update label styling - highlight selected label without accent color
             TextBlock[] labels = { QuietLabel, LowLabel, MediumLabel, HighLabel };
             for (int i = 0; i < labels.Length; i++)
             {
                 if (i == sliderPos)
                 {
-                    labels[i].FontWeight = FontWeights.Bold;
-                    labels[i].Foreground = accentTextBrush;
+                    labels[i].FontWeight = FontWeights.SemiBold;
+                    labels[i].Foreground = primaryBrush;
                 }
                 else
                 {
@@ -395,6 +412,15 @@ public sealed partial class ControlsPage : Page
             }
         }
     }
+
+    private static string SliderPosToLabel(int sliderPos) => sliderPos switch
+    {
+        0 => "Quiet",
+        1 => "Low",
+        2 => "Medium",
+        3 => "High",
+        _ => "--"
+    };
     
     private void FanAutoToggle_Toggled(object sender, RoutedEventArgs e)
     {
@@ -435,20 +461,29 @@ public sealed partial class ControlsPage : Page
             SwingHorizontal.IsChecked = swing == SwingMode.Horizontal;
             SwingBoth.IsChecked = swing == SwingMode.Both;
             
-            // Update label colors - use accent color for selected (consistent with fan speed labels)
-            var accentBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+            // Labels: bold + primary for selected, muted for unselected
+            var primaryBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
             var mutedBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+
+            SwingStoppedLabel.Foreground = swing == SwingMode.Off ? primaryBrush : mutedBrush;
+            SwingVerticalLabel.Foreground = swing == SwingMode.Vertical ? primaryBrush : mutedBrush;
+            SwingHorizontalLabel.Foreground = swing == SwingMode.Horizontal ? primaryBrush : mutedBrush;
+            SwingBothLabel.Foreground = swing == SwingMode.Both ? primaryBrush : mutedBrush;
+
+            SwingStoppedLabel.FontWeight = swing == SwingMode.Off ? FontWeights.SemiBold : FontWeights.Normal;
+            SwingVerticalLabel.FontWeight = swing == SwingMode.Vertical ? FontWeights.SemiBold : FontWeights.Normal;
+            SwingHorizontalLabel.FontWeight = swing == SwingMode.Horizontal ? FontWeights.SemiBold : FontWeights.Normal;
+            SwingBothLabel.FontWeight = swing == SwingMode.Both ? FontWeights.SemiBold : FontWeights.Normal;
+
+            // Icon colors: white when selected, grey when not
+            var whiteBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+            var greyBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorDisabledBrush"];
             
-            SwingStoppedLabel.Foreground = swing == SwingMode.Off ? accentBrush : mutedBrush;
-            SwingVerticalLabel.Foreground = swing == SwingMode.Vertical ? accentBrush : mutedBrush;
-            SwingHorizontalLabel.Foreground = swing == SwingMode.Horizontal ? accentBrush : mutedBrush;
-            SwingBothLabel.Foreground = swing == SwingMode.Both ? accentBrush : mutedBrush;
-            
-            // Bold the selected label
-            SwingStoppedLabel.FontWeight = swing == SwingMode.Off ? FontWeights.Bold : FontWeights.Normal;
-            SwingVerticalLabel.FontWeight = swing == SwingMode.Vertical ? FontWeights.Bold : FontWeights.Normal;
-            SwingHorizontalLabel.FontWeight = swing == SwingMode.Horizontal ? FontWeights.Bold : FontWeights.Normal;
-            SwingBothLabel.FontWeight = swing == SwingMode.Both ? FontWeights.Bold : FontWeights.Normal;
+            SwingStoppedIcon.Foreground = swing == SwingMode.Off ? whiteBrush : greyBrush;
+            SwingVerticalIcon1.Foreground = swing == SwingMode.Vertical ? whiteBrush : greyBrush;
+            SwingVerticalIcon2.Foreground = swing == SwingMode.Vertical ? whiteBrush : greyBrush;
+            SwingHorizontalIcon.Foreground = swing == SwingMode.Horizontal ? whiteBrush : greyBrush;
+            SwingBothIcon.Foreground = swing == SwingMode.Both ? whiteBrush : greyBrush;
         }
         finally
         {
@@ -463,38 +498,76 @@ public sealed partial class ControlsPage : Page
         ApplyButton.Opacity = hasChanges ? 1.0 : 0.5;
     }
 
-    private void ModeButton_Click(object sender, RoutedEventArgs e)
+    private void ModeButton_Checked(object sender, RoutedEventArgs e)
     {
         if (_isUpdatingUI) return;
-        
+
         if (sender is ToggleButton button && button.Tag is string modeStr)
         {
             if (Enum.TryParse<DaikinMode>(modeStr, out var mode))
             {
-                // Radio button behavior: if clicking the already-selected mode, keep it selected
-                if (mode == _viewModel.StagedMode)
+                // Update the ViewModel - this triggers UpdateModeButtonsUI via PropertyChanged
+                // which will properly uncheck the other buttons
+                _viewModel.StagedMode = mode;
+            }
+        }
+    }
+
+    private void ModeButton_Unchecked(object sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingUI) return;
+
+        if (sender is ToggleButton button && button.Tag is string modeStr && Enum.TryParse<DaikinMode>(modeStr, out var mode))
+        {
+            // Prevent "toggle off" for the active selection.
+            if (_viewModel.StagedMode == mode)
+            {
+                _isUpdatingUI = true;
+                try
                 {
-                    // Re-check it to prevent deselection
                     button.IsChecked = true;
                 }
-                else
+                finally
                 {
-                    _viewModel.StagedMode = mode;
+                    _isUpdatingUI = false;
                 }
             }
         }
     }
 
-    private void SwingButton_Click(object sender, RoutedEventArgs e)
+    private void SwingButton_Checked(object sender, RoutedEventArgs e)
     {
         if (_isUpdatingUI) return;
-        
+
         if (sender is ToggleButton btn && btn.Tag is string tagStr)
         {
             if (Enum.TryParse<SwingMode>(tagStr, out var swing))
             {
+                // Update the ViewModel - this triggers UpdateSwingButtonsUI via PropertyChanged
+                // which will properly uncheck the other buttons
                 _viewModel.StagedSwingMode = swing;
-                UpdateSwingButtonsUI();
+            }
+        }
+    }
+
+    private void SwingButton_Unchecked(object sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingUI) return;
+
+        if (sender is ToggleButton btn && btn.Tag is string tagStr && Enum.TryParse<SwingMode>(tagStr, out var swing))
+        {
+            // Prevent "toggle off" for the active selection.
+            if (_viewModel.StagedSwingMode == swing)
+            {
+                _isUpdatingUI = true;
+                try
+                {
+                    btn.IsChecked = true;
+                }
+                finally
+                {
+                    _isUpdatingUI = false;
+                }
             }
         }
     }
