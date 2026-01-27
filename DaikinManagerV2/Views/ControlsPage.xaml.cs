@@ -20,6 +20,20 @@ public sealed partial class ControlsPage : Page
     public ControlsPage()
     {
         this.InitializeComponent();
+        this.Loaded += ControlsPage_Loaded;
+    }
+    
+    private void ControlsPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Re-sync UI after visual tree is fully loaded (needed for template-based shadows)
+        // Defer slightly to ensure button templates are applied
+        if (_viewModel != null)
+        {
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                SyncUIFromViewModel();
+            });
+        }
     }
 
     public void Initialize(ControlsViewModel viewModel)
@@ -38,6 +52,41 @@ public sealed partial class ControlsPage : Page
         
         // Initial UI sync (only matters once we switch to Ready state)
         SyncUIFromViewModel();
+    }
+    
+    /// <summary>
+    /// Helper to find a named element inside a templated control's visual tree.
+    /// </summary>
+    private static T? FindTemplateChild<T>(DependencyObject parent, string name) where T : FrameworkElement
+    {
+        int childCount = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < childCount; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T element && element.Name == name)
+            {
+                return element;
+            }
+            
+            var result = FindTemplateChild<T>(child, name);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+        return null;
+    }
+    
+    /// <summary>
+    /// Sets the InsetShadow opacity for a ToggleButton using the custom template.
+    /// </summary>
+    private static void SetInsetShadowOpacity(ToggleButton button, double opacity)
+    {
+        var shadow = FindTemplateChild<Border>(button, "InsetShadow");
+        if (shadow != null)
+        {
+            shadow.Opacity = opacity;
+        }
     }
     
     #region Page State Management
@@ -253,6 +302,13 @@ public sealed partial class ControlsPage : Page
             // Image icons can't be tinted via Foreground; use opacity for selection cue.
             CoolIcon.Opacity = mode == DaikinMode.Cool ? 1.0 : 0.35;
             FanModeIcon.Opacity = mode == DaikinMode.Fan ? 1.0 : 0.35;
+            
+            // Inset shadow effect - show on selected button (pressed-in look)
+            SetInsetShadowOpacity(ModeCool, mode == DaikinMode.Cool ? 1.0 : 0.0);
+            SetInsetShadowOpacity(ModeHeat, mode == DaikinMode.Heat ? 1.0 : 0.0);
+            SetInsetShadowOpacity(ModeAuto, mode == DaikinMode.Auto ? 1.0 : 0.0);
+            SetInsetShadowOpacity(ModeDry, mode == DaikinMode.Dry ? 1.0 : 0.0);
+            SetInsetShadowOpacity(ModeFan, mode == DaikinMode.Fan ? 1.0 : 0.0);
             
             // Update temperature slider enabled state based on mode
             bool canSetTemp = _viewModel.StagedPower && mode != DaikinMode.Fan;
@@ -484,6 +540,12 @@ public sealed partial class ControlsPage : Page
             SwingVerticalIcon2.Foreground = swing == SwingMode.Vertical ? whiteBrush : greyBrush;
             SwingHorizontalIcon.Foreground = swing == SwingMode.Horizontal ? whiteBrush : greyBrush;
             SwingBothIcon.Foreground = swing == SwingMode.Both ? whiteBrush : greyBrush;
+            
+            // Inset shadow effect - show on selected button (pressed-in look)
+            SetInsetShadowOpacity(SwingStopped, swing == SwingMode.Off ? 1.0 : 0.0);
+            SetInsetShadowOpacity(SwingVertical, swing == SwingMode.Vertical ? 1.0 : 0.0);
+            SetInsetShadowOpacity(SwingHorizontal, swing == SwingMode.Horizontal ? 1.0 : 0.0);
+            SetInsetShadowOpacity(SwingBoth, swing == SwingMode.Both ? 1.0 : 0.0);
         }
         finally
         {
