@@ -2,11 +2,14 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Text;
+using Microsoft.UI.Composition;
 using DaikinManagerV2.Models;
 using DaikinManagerV2.ViewModels;
 using DaikinManagerV2.Controls;
 using Windows.UI;
+using System.Numerics;
 
 namespace DaikinManagerV2.Views;
 
@@ -78,15 +81,163 @@ public sealed partial class ControlsPage : Page
     }
     
     /// <summary>
-    /// Sets the InsetShadow opacity for a ToggleButton using the custom template.
+    /// Sets the border highlight for a ToggleButton using the custom template.
+    /// Controls the thick bottom border visibility via BorderBrush.
     /// </summary>
-    private static void SetInsetShadowOpacity(ToggleButton button, double opacity)
+    private void SetInsetShadowOpacity(ToggleButton button, double opacity)
     {
-        var shadow = FindTemplateChild<Border>(button, "InsetShadow");
-        if (shadow != null)
+        // Ensure template is applied before accessing template children
+        button.ApplyTemplate();
+        
+        var background = FindTemplateChild<Border>(button, "Background");
+        if (background != null)
         {
-            shadow.Opacity = opacity;
+            // Use transparent border when not selected
+            var color = opacity > 0 
+                ? Windows.UI.Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF) 
+                : Windows.UI.Color.FromArgb(0x00, 0x00, 0x00, 0x00);
+            background.BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(color);
         }
+    }
+    
+    /// <summary>
+    /// Sets the border highlight for a mode ToggleButton using DropShadow via Composition.
+    /// Creates a colored shadow behind the button when selected.
+    /// </summary>
+    private Dictionary<DaikinMode, SpriteVisual?> _modeShadowVisuals = new();
+    private Dictionary<DaikinMode, CompositionRoundedRectangleGeometry?> _modeShadowGeometries = new();
+    
+    private void SetModeInsetShadow(ToggleButton button, DaikinMode buttonMode, DaikinMode selectedMode)
+    {
+        // Get the corresponding shadow rectangle
+        var shadowRect = buttonMode switch
+        {
+            DaikinMode.Cool => ModeCoolShadow,
+            DaikinMode.Heat => ModeHeatShadow,
+            DaikinMode.Auto => ModeAutoShadow,
+            DaikinMode.Dry => ModeDryShadow,
+            DaikinMode.Fan => ModeFanShadow,
+            _ => null
+        };
+        
+        if (shadowRect == null) return;
+        
+        bool isSelected = buttonMode == selectedMode;
+        
+        // Always clear existing shadow first
+        if (_modeShadowVisuals.TryGetValue(buttonMode, out var existingVisual) && existingVisual != null)
+        {
+            existingVisual.Shadow = null;
+            ElementCompositionPreview.SetElementChildVisual(shadowRect, null);
+            _modeShadowVisuals[buttonMode] = null;
+            _modeShadowGeometries[buttonMode] = null;
+        }
+        
+        // Update button border - hide when selected, show when not
+        // Find the Background border inside the button's template
+        if (button.IsLoaded)
+        {
+            var backgroundBorder = FindVisualChild<Border>(button, "Background");
+            if (backgroundBorder != null)
+            {
+                backgroundBorder.BorderThickness = isSelected ? new Thickness(0) : new Thickness(1);
+            }
+        }
+        
+        if (isSelected)
+        {
+            // Get mode-specific shadow color (same as TemperatureDial)
+            var shadowColor = buttonMode switch
+            {
+                DaikinMode.Cool => Color.FromArgb(255, 30, 144, 255),   // Dodger blue
+                DaikinMode.Heat => Color.FromArgb(255, 255, 87, 51),    // Warm orange-red
+                DaikinMode.Auto => Color.FromArgb(255, 60, 179, 113),   // Medium sea green
+                DaikinMode.Dry => Color.FromArgb(255, 255, 193, 7),     // Amber/gold
+                DaikinMode.Fan => Color.FromArgb(255, 128, 128, 128),   // Gray
+                _ => Color.FromArgb(255, 128, 128, 128)
+            };
+            
+            // Create DropShadow via Composition
+            var compositor = ElementCompositionPreview.GetElementVisual(shadowRect).Compositor;
+            var dropShadow = compositor.CreateDropShadow();
+            dropShadow.Color = shadowColor;
+            dropShadow.BlurRadius = 0f;  // Flat shadow, no gradient
+            dropShadow.Offset = new Vector3(-1, 1, 0);  // Shadow below and left of button
+            dropShadow.Opacity = 0.9f;
+            
+            // Create a sprite visual to host the shadow
+            var shadowVisual = compositor.CreateSpriteVisual();
+            shadowVisual.Shadow = dropShadow;
+            
+            // Use actual size if available, otherwise will be set via SizeChanged
+            var width = (float)shadowRect.ActualWidth;
+            var height = (float)shadowRect.ActualHeight;
+            shadowVisual.Size = new Vector2(Math.Max(0, width), Math.Max(0, height));
+            
+            // Create rounded rectangle clip for the shadow (match button corner radius)
+            // Offset the clip down to hide the top portion of the shadow
+            var clipOffset = 2f;  // Hide top 2 pixels of shadow
+            var roundedRectGeometry = compositor.CreateRoundedRectangleGeometry();
+            roundedRectGeometry.Size = new Vector2(Math.Max(0, width), Math.Max(0, height - clipOffset));
+            roundedRectGeometry.Offset = new Vector2(0, clipOffset);
+            roundedRectGeometry.CornerRadius = new Vector2(6, 6);  // Match button corner radius
+            var geometricClip = compositor.CreateGeometricClip(roundedRectGeometry);
+            shadowVisual.Clip = geometricClip;
+            
+            // Store references for cleanup and size updates
+            _modeShadowVisuals[buttonMode] = shadowVisual;
+            _modeShadowGeometries[buttonMode] = roundedRectGeometry;
+            
+            ElementCompositionPreview.SetElementChildVisual(shadowRect, shadowVisual);
+            
+            // If size is 0, we need to update when the element gets its actual size
+            if (width == 0 || height == 0)
+            {
+                void OnSizeChanged(object s, SizeChangedEventArgs args)
+                {
+                    var newWidth = (float)args.NewSize.Width;
+                    var newHeight = (float)args.NewSize.Height;
+                    var clipOff = 2f;
+                    if (_modeShadowVisuals.TryGetValue(buttonMode, out var sv) && sv != null)
+                    {
+                        sv.Size = new Vector2(newWidth, newHeight);
+                    }
+                    if (_modeShadowGeometries.TryGetValue(buttonMode, out var geom) && geom != null)
+                    {
+                        geom.Size = new Vector2(newWidth, Math.Max(0, newHeight - clipOff));
+                        geom.Offset = new Vector2(0, clipOff);
+                    }
+                    // Unsubscribe after first successful size
+                    if (args.NewSize.Width > 0 && args.NewSize.Height > 0)
+                    {
+                        shadowRect.SizeChanged -= OnSizeChanged;
+                    }
+                }
+                shadowRect.SizeChanged += OnSizeChanged;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Helper to find a named child element in the visual tree.
+    /// </summary>
+    private static T? FindVisualChild<T>(DependencyObject parent, string name) where T : FrameworkElement
+    {
+        int childCount = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < childCount; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T typedChild && typedChild.Name == name)
+            {
+                return typedChild;
+            }
+            var result = FindVisualChild<T>(child, name);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+        return null;
     }
     
     #region Page State Management
@@ -303,12 +454,12 @@ public sealed partial class ControlsPage : Page
             CoolIcon.Opacity = mode == DaikinMode.Cool ? 1.0 : 0.35;
             FanModeIcon.Opacity = mode == DaikinMode.Fan ? 1.0 : 0.35;
             
-            // Inset shadow effect - show on selected button (pressed-in look)
-            SetInsetShadowOpacity(ModeCool, mode == DaikinMode.Cool ? 1.0 : 0.0);
-            SetInsetShadowOpacity(ModeHeat, mode == DaikinMode.Heat ? 1.0 : 0.0);
-            SetInsetShadowOpacity(ModeAuto, mode == DaikinMode.Auto ? 1.0 : 0.0);
-            SetInsetShadowOpacity(ModeDry, mode == DaikinMode.Dry ? 1.0 : 0.0);
-            SetInsetShadowOpacity(ModeFan, mode == DaikinMode.Fan ? 1.0 : 0.0);
+            // Inset shadow effect - show on selected button with mode-specific color
+            SetModeInsetShadow(ModeCool, DaikinMode.Cool, mode);
+            SetModeInsetShadow(ModeHeat, DaikinMode.Heat, mode);
+            SetModeInsetShadow(ModeAuto, DaikinMode.Auto, mode);
+            SetModeInsetShadow(ModeDry, DaikinMode.Dry, mode);
+            SetModeInsetShadow(ModeFan, DaikinMode.Fan, mode);
             
             // Update temperature slider enabled state based on mode
             bool canSetTemp = _viewModel.StagedPower && mode != DaikinMode.Fan;

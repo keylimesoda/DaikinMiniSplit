@@ -11,24 +11,66 @@
         <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="{ThemeResource ControlFillColorSecondary}"/>
         <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="{ThemeResource ControlFillColorTertiary}"/>
         
-        <!-- Inset shadow gradient brush -->
-        <LinearGradientBrush x:Key="InsetShadowBrush" StartPoint="0.5,1" EndPoint="0.5,0">
-            <GradientStop Color="#40000000" Offset="0"/>
-            <GradientStop Color="#20000000" Offset="0.3"/>
-            <GradientStop Color="#00000000" Offset="1"/>
-        </LinearGradientBrush>
+        <!-- Opaque button background brush (dark theme) -->
+        <SolidColorBrush x:Key="OpaqueButtonBackgroundBrush" Color="#FF2D2D2D"/>
         
-        <!-- Custom ToggleButton style with inset shadow overlay built into the template -->
+        <!-- Custom ToggleButton style with inset edge shadow (rim effect) -->
         <Style x:Key="InsetShadowToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Padding" Value="8"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
-                        <Grid>
+                        <Grid x:Name="RootGrid">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CheckStates">
+                                    <VisualState x:Name="Checked">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="0"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="0"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="0"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedDisabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="0"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Unchecked">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="1"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="UncheckedPointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="1"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="UncheckedPressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="1"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="UncheckedDisabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="Background.BorderThickness" Value="1"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <!-- Main button background - fully opaque to hide shadow behind -->
                             <Border x:Name="Background"
-                                    Background="{TemplateBinding Background}"
+                                    Background="{StaticResource OpaqueButtonBackgroundBrush}"
                                     BackgroundSizing="InnerBorderEdge"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
@@ -42,16 +84,20 @@
                                                   Padding="{TemplateBinding Padding}"
                                                   AutomationProperties.AccessibilityView="Raw"/>
                             </Border>
-                            <!-- Inset shadow overlay - covers entire button -->
-                            <Border x:Name="InsetShadow"
-                                    Background="{StaticResource InsetShadowBrush}"
-                                    CornerRadius="{TemplateBinding CornerRadius}"
-                                    IsHitTestVisible="False"
-                                    Opacity="0"/>
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        
+        <!-- ToggleButton style for swing buttons - keeps border in all states -->
+        <Style x:Key="SwingToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Background" Value="{StaticResource OpaqueButtonBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
     </Page.Resources>
 
@@ -118,54 +164,70 @@
                             
                             <!-- Cool -->
                             <StackPanel Grid.Column="0" Spacing="4">
-                                <ToggleButton x:Name="ModeCool" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Cool"
-                                              ToolTipService.ToolTip="Cool" Style="{StaticResource InsetShadowToggleButtonStyle}">
-                                    <Border Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Image x:Name="CoolIcon" Width="24" Height="24" Margin="-2" Stretch="Uniform">
-                                            <Image.Source>
-                                                <SvgImageSource UriSource="ms-appx:///Assets/snowflake.svg"/>
-                                            </Image.Source>
-                                        </Image>
-                                    </Border>
-                                </ToggleButton>
+                                <Grid>
+                                    <!-- Shadow host (behind button) -->
+                                    <Rectangle x:Name="ModeCoolShadow" RadiusX="6" RadiusY="6" Margin="-0.5,2,-0.5,-2"/>
+                                    <ToggleButton x:Name="ModeCool" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Cool"
+                                                  ToolTipService.ToolTip="Cool" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                        <Border Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Image x:Name="CoolIcon" Width="24" Height="24" Margin="-2" Stretch="Uniform">
+                                                <Image.Source>
+                                                    <SvgImageSource UriSource="ms-appx:///Assets/snowflake.svg"/>
+                                                </Image.Source>
+                                            </Image>
+                                        </Border>
+                                    </ToggleButton>
+                                </Grid>
                                 <TextBlock x:Name="ModeCoolLabel" Text="Cool" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Heat -->
                             <StackPanel Grid.Column="1" Spacing="4">
-                                <ToggleButton x:Name="ModeHeat" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Heat"
-                                              ToolTipService.ToolTip="Heat" Style="{StaticResource InsetShadowToggleButtonStyle}">
-                                    <FontIcon x:Name="HeatIcon" Glyph="&#xE706;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </ToggleButton>
+                                <Grid>
+                                    <Rectangle x:Name="ModeHeatShadow" RadiusX="6" RadiusY="6" Margin="-0.5,2,-0.5,-2"/>
+                                    <ToggleButton x:Name="ModeHeat" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Heat"
+                                                  ToolTipService.ToolTip="Heat" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                        <FontIcon x:Name="HeatIcon" Glyph="&#xE706;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </ToggleButton>
+                                </Grid>
                                 <TextBlock x:Name="ModeHeatLabel" Text="Heat" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Auto -->
                             <StackPanel Grid.Column="2" Spacing="4">
-                                <ToggleButton x:Name="ModeAuto" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Auto"
-                                              ToolTipService.ToolTip="Auto" Style="{StaticResource InsetShadowToggleButtonStyle}">
-                                    <FontIcon x:Name="AutoIcon" Glyph="&#xE793;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </ToggleButton>
+                                <Grid>
+                                    <Rectangle x:Name="ModeAutoShadow" RadiusX="6" RadiusY="6" Margin="-0.5,2,-0.5,-2"/>
+                                    <ToggleButton x:Name="ModeAuto" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Auto"
+                                                  ToolTipService.ToolTip="Auto" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                        <FontIcon x:Name="AutoIcon" Glyph="&#xE793;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </ToggleButton>
+                                </Grid>
                                 <TextBlock x:Name="ModeAutoLabel" Text="Auto" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Dry -->
                             <StackPanel Grid.Column="3" Spacing="4">
-                                <ToggleButton x:Name="ModeDry" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Dry"
-                                              ToolTipService.ToolTip="Dry" Style="{StaticResource InsetShadowToggleButtonStyle}">
-                                    <Viewbox Width="40" Height="40" Margin="-10,-13.5,-10,-6.5" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock x:Name="DryIcon" Text="≋" FontSize="120"/>
-                                    </Viewbox>
-                                </ToggleButton>
+                                <Grid>
+                                    <Rectangle x:Name="ModeDryShadow" RadiusX="6" RadiusY="6" Margin="-0.5,2,-0.5,-2"/>
+                                    <ToggleButton x:Name="ModeDry" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Dry"
+                                                  ToolTipService.ToolTip="Dry" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                        <Viewbox Width="40" Height="40" Margin="-10,-13.5,-10,-6.5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock x:Name="DryIcon" Text="≋" FontSize="120"/>
+                                        </Viewbox>
+                                    </ToggleButton>
+                                </Grid>
                                 <TextBlock x:Name="ModeDryLabel" Text="Dry" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                             
                             <!-- Fan -->
                             <StackPanel Grid.Column="4" Spacing="4">
-                                <ToggleButton x:Name="ModeFan" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Fan"
-                                              ToolTipService.ToolTip="Fan Only" Style="{StaticResource InsetShadowToggleButtonStyle}">
-                                    <Image x:Name="FanModeIcon" Source="ms-appx:///Assets/fan.png" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </ToggleButton>
+                                <Grid>
+                                    <Rectangle x:Name="ModeFanShadow" RadiusX="6" RadiusY="6" Margin="-0.5,2,-0.5,-2"/>
+                                    <ToggleButton x:Name="ModeFan" Checked="ModeButton_Checked" Unchecked="ModeButton_Unchecked" Tag="Fan"
+                                                  ToolTipService.ToolTip="Fan Only" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                        <Image x:Name="FanModeIcon" Source="ms-appx:///Assets/fan.png" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </ToggleButton>
+                                </Grid>
                                 <TextBlock x:Name="ModeFanLabel" Text="Fan" FontSize="12" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
@@ -262,7 +324,7 @@
                             <!-- Off/Stopped -->
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <ToggleButton x:Name="SwingStopped" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Off"
-                                              ToolTipService.ToolTip="Off" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                              ToolTipService.ToolTip="Off" Style="{StaticResource SwingToggleButtonStyle}">
                                     <FontIcon x:Name="SwingStoppedIcon" Glyph="&#xF140;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="SwingStoppedLabel" Text="Off" FontSize="12" HorizontalAlignment="Center"/>
@@ -271,7 +333,7 @@
                             <!-- Vertical -->
                             <StackPanel Grid.Column="1" Spacing="4">
                                 <ToggleButton x:Name="SwingVertical" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Vertical"
-                                              ToolTipService.ToolTip="Vertical" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                              ToolTipService.ToolTip="Vertical" Style="{StaticResource SwingToggleButtonStyle}">
                                     <Grid Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <StackPanel VerticalAlignment="Center" Spacing="-6">
                                             <FontIcon x:Name="SwingVerticalIcon1" Glyph="&#xE70E;" FontSize="14"/>
@@ -285,7 +347,7 @@
                             <!-- Horizontal -->
                             <StackPanel Grid.Column="2" Spacing="4">
                                 <ToggleButton x:Name="SwingHorizontal" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Horizontal"
-                                              ToolTipService.ToolTip="Horizontal" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                              ToolTipService.ToolTip="Horizontal" Style="{StaticResource SwingToggleButtonStyle}">
                                     <FontIcon x:Name="SwingHorizontalIcon" Glyph="&#xE8AB;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="SwingHorizontalLabel" Text="Horizontal" FontSize="12" HorizontalAlignment="Center"/>
@@ -294,7 +356,7 @@
                             <!-- 3D / Both -->
                             <StackPanel Grid.Column="3" Spacing="4">
                                 <ToggleButton x:Name="SwingBoth" Checked="SwingButton_Checked" Unchecked="SwingButton_Unchecked" Tag="Both"
-                                              ToolTipService.ToolTip="3D / Both" Style="{StaticResource InsetShadowToggleButtonStyle}">
+                                              ToolTipService.ToolTip="3D / Both" Style="{StaticResource SwingToggleButtonStyle}">
                                     <FontIcon x:Name="SwingBothIcon" Glyph="&#xE744;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </ToggleButton>
                                 <TextBlock x:Name="SwingBothLabel" Text="3D" FontSize="12" HorizontalAlignment="Center"/>
