@@ -237,6 +237,121 @@ public sealed class DaikinApiService : IDaikinApiService
 
     #endregion
 
+    #region Schedule APIs
+
+    // Day code mapping for schedule API
+    private static readonly (string Code, DayOfWeek Day)[] DayCodes =
+    {
+        ("mo", DayOfWeek.Monday),
+        ("tu", DayOfWeek.Tuesday),
+        ("we", DayOfWeek.Wednesday),
+        ("th", DayOfWeek.Thursday),
+        ("fr", DayOfWeek.Friday),
+        ("sa", DayOfWeek.Saturday),
+        ("su", DayOfWeek.Sunday)
+    };
+
+    /// <summary>
+    /// Get the weekly schedule from the device.
+    /// </summary>
+    public async Task<WeeklySchedule> GetScheduleAsync(CancellationToken ct = default)
+    {
+        var response = await WithRetryAsync(
+            () => _httpClient.GetStringAsync($"{_baseUrl}/aircon/get_scdltimer", ct), ct);
+        
+        var data = ParseResponse(response);
+        
+        var days = new List<DaySchedule>();
+        
+        foreach (var (code, day) in DayCodes)
+        {
+            var events = ParseDayEvents(data, code);
+            days.Add(new DaySchedule(day, events));
+        }
+        
+        return new WeeklySchedule(days);
+    }
+
+    /// <summary>
+    /// Get scheduler metadata.
+    /// </summary>
+    public async Task<SchedulerInfo> GetSchedulerInfoAsync(CancellationToken ct = default)
+    {
+        var response = await WithRetryAsync(
+            () => _httpClient.GetStringAsync($"{_baseUrl}/aircon/get_scdltimer_info", ct), ct);
+        
+        var data = ParseResponse(response);
+        
+        return new SchedulerInfo(
+            Enabled: data.GetValueOrDefault("en_scdltimer", "0") == "1",
+            ActiveSlot: int.TryParse(data.GetValueOrDefault("active_no", "1"), out var slot) ? slot : 1,
+            MaxSchedules: int.TryParse(data.GetValueOrDefault("scdl_num", "3"), out var max) ? max : 3,
+            MaxEventsPerDay: int.TryParse(data.GetValueOrDefault("scdl_per_day", "6"), out var perDay) ? perDay : 6,
+            Schedule1Name: data.GetValueOrDefault("scdl1_name", ""),
+            Schedule2Name: data.GetValueOrDefault("scdl2_name", ""),
+            Schedule3Name: data.GetValueOrDefault("scdl3_name", "")
+        );
+    }
+
+    /// <summary>
+    /// Enable or disable the scheduler.
+    /// </summary>
+    public async Task SetSchedulerEnabledAsync(bool enabled, CancellationToken ct = default)
+    {
+        var value = enabled ? "1" : "0";
+        await _httpClient.GetStringAsync($"{_baseUrl}/aircon/set_scdltimer_info?en_scdltimer={value}", ct);
+    }
+
+    /// <summary>
+    /// Parse events for a single day from the schedule response.
+    /// </summary>
+    private static List<ScheduleEvent> ParseDayEvents(Dictionary<string, string> data, string dayCode)
+    {
+        var events = new List<ScheduleEvent>();
+        
+        // Get event count for this day (e.g., "moc" for Monday)
+        var countKey = $"{dayCode}c";
+        var eventCount = int.TryParse(data.GetValueOrDefault(countKey, "0"), out var count) ? count : 0;
+        
+        // Parse each event (1-indexed: mo1_en, mo1_pow, etc.)
+        for (int i = 1; i <= eventCount; i++)
+        {
+            var prefix = $"{dayCode}{i}_";
+            
+            var enabled = data.GetValueOrDefault($"{prefix}en", "0") == "1";
+            var powerOn = data.GetValueOrDefault($"{prefix}pow", "0") == "1";
+            var modeValue = data.GetValueOrDefault($"{prefix}mod", "1");
+            var tempValue = data.GetValueOrDefault($"{prefix}tmp", "--");
+            var timeMinutes = int.TryParse(data.GetValueOrDefault($"{prefix}time", "0"), out var mins) ? mins : 0;
+            
+            // Parse mode
+            var mode = modeValue switch
+            {
+                "2" => DaikinMode.Dry,
+                "3" => DaikinMode.Cool,
+                "4" => DaikinMode.Heat,
+                "6" => DaikinMode.Fan,
+                _ => DaikinMode.Auto
+            };
+            
+            // Parse temperature (may be "--" for power-off events)
+            double? temperature = null;
+            if (tempValue != "--" && double.TryParse(tempValue, out var temp))
+            {
+                temperature = temp;
+            }
+            
+            // Convert minutes from midnight to TimeOnly
+            var time = TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(timeMinutes));
+            
+            events.Add(new ScheduleEvent(enabled, powerOn, mode, temperature, time));
+        }
+        
+        return events;
+    }
+
+    #endregion
+
     public void Dispose()
     {
         if (!_disposed)

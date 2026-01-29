@@ -33,6 +33,11 @@ A Windows desktop application for controlling Daikin mini split HVAC units over 
 | `/aircon/set_control_info` | Update settings | URL-encoded key=value pairs |
 | `/aircon/get_sensor_info` | Temperature sensors | URL-encoded key=value pairs |
 | `/common/basic_info` | Device info (MAC, firmware) | URL-encoded key=value pairs |
+| `/common/get_datetime` | Device date/time | URL-encoded key=value pairs |
+| `/aircon/get_scdltimer` | Weekly schedule data | URL-encoded key=value pairs |
+| `/aircon/set_scdltimer` | Set weekly schedule | URL-encoded key=value pairs |
+| `/aircon/get_scdltimer_info` | Schedule metadata | URL-encoded key=value pairs |
+| `/aircon/set_scdltimer_info` | Enable/disable scheduler | URL-encoded key=value pairs |
 
 ### 2.3 API Parameters
 
@@ -59,6 +64,32 @@ A Windows desktop application for controlling Daikin mini split HVAC units over 
 | `mac` | MAC address |
 | `ver` | Firmware version |
 | `err` | Error code (0 = OK) |
+
+#### Schedule Timer Info Fields (`get_scdltimer_info`)
+| Field | Description | Values |
+|-------|-------------|--------|
+| `format` | API format version | `v1` |
+| `scdl_num` | Number of schedule slots | `3` |
+| `scdl_per_day` | Max events per day | `6` |
+| `en_scdltimer` | Scheduler enabled | `0` = Off, `1` = On |
+| `active_no` | Active schedule number | `1`, `2`, or `3` |
+| `scdl1_name` | Schedule 1 name | String |
+| `scdl2_name` | Schedule 2 name | String |
+| `scdl3_name` | Schedule 3 name | String |
+
+#### Schedule Timer Data Fields (`get_scdltimer` / `set_scdltimer`)
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `{day}c` | Event count for day | `moc=2` (Monday has 2 events) |
+| `{day}{n}_en` | Event enabled | `mo1_en=1` (Monday event 1 enabled) |
+| `{day}{n}_pow` | Power state | `mo1_pow=1` (Power ON) |
+| `{day}{n}_mod` | Operating mode | `mo1_mod=3` (Cool mode) |
+| `{day}{n}_tmp` | Temperature | `mo1_tmp=22.0` (22°C) or `--` |
+| `{day}{n}_time` | Time (minutes from midnight) | `mo1_time=480` (8:00 AM) |
+
+Day codes: `mo`=Monday, `tu`=Tuesday, `we`=Wednesday, `th`=Thursday, `fr`=Friday, `sa`=Saturday, `su`=Sunday
+
+**Note:** `set_scdltimer` requires ALL 7 days in one atomic request.
 
 ### 2.4 Hysteresis Compensation
 

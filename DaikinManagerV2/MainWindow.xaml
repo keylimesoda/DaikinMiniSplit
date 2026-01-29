@@ -77,6 +77,11 @@
                             <FontIcon Glyph="&#xE9A1;"/>
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
+                    <NavigationViewItem Content="Schedule" Tag="Schedule">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE787;"/>
+                        </NavigationViewItem.Icon>
+                    </NavigationViewItem>
                     <NavigationViewItem Content="Diagnostics" Tag="Diagnostics">
                         <NavigationViewItem.Icon>
                             <FontIcon Glyph="&#xE9D9;"/>

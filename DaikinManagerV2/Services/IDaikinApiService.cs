@@ -29,4 +29,24 @@ public interface IDaikinApiService : IDisposable
     /// Update the device IP address.
     /// </summary>
     void SetDeviceAddress(string ipAddress);
+
+    #region Schedule APIs
+
+    /// <summary>
+    /// Get the weekly schedule from the device.
+    /// </summary>
+    Task<WeeklySchedule> GetScheduleAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Get scheduler metadata (enabled state, active slot, names).
+    /// </summary>
+    Task<SchedulerInfo> GetSchedulerInfoAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Enable or disable the scheduler globally.
+    /// Schedule data is preserved when disabled.
+    /// </summary>
+    Task SetSchedulerEnabledAsync(bool enabled, CancellationToken ct = default);
+
+    #endregion
 }

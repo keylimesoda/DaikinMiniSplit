@@ -89,6 +89,10 @@ public sealed partial class MainWindow : Window
             {
                 NavigateToControls();
             }
+            else if (tag == "Schedule")
+            {
+                NavigateToSchedule();
+            }
             else if (tag == "Diagnostics")
             {
                 NavigateToDiagnostics();
@@ -102,6 +106,15 @@ public sealed partial class MainWindow : Window
         if (ContentFrame.Content is ControlsPage page)
         {
             page.Initialize(App.Services.GetRequiredService<ControlsViewModel>());
+        }
+    }
+    
+    private void NavigateToSchedule()
+    {
+        ContentFrame.Navigate(typeof(SchedulePage), null);
+        if (ContentFrame.Content is SchedulePage page)
+        {
+            page.Initialize(App.Services.GetRequiredService<ScheduleViewModel>());
         }
     }
     

@@ -27,6 +27,7 @@ public partial class App : Application
         // ViewModels (Singleton - shared across MainWindow and Pages)
         services.AddSingleton<MainViewModel>();      // Owns timer, survives navigation
         services.AddSingleton<ControlsViewModel>();  // Shared with MainWindow for power button
+        services.AddSingleton<ScheduleViewModel>();  // Schedule page VM
         services.AddTransient<DiagnosticsViewModel>();
     }
 
