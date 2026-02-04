@@ -1,8 +1,10 @@
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Shapes;
 using Microsoft.UI.Text;
 using DaikinManagerV2.Models;
 using DaikinManagerV2.ViewModels;
@@ -21,6 +23,7 @@ public sealed partial class ControlsPage : Page
     // Mode button tracking
     private readonly Dictionary<DaikinMode, ToggleButton> _modeButtons = new();
     private readonly Dictionary<DaikinMode, TextBlock> _modeLabels = new();
+    private readonly Dictionary<DaikinMode, UIElement> _sunkenOverlays = new();
 
     public ControlsPage()
     {
@@ -65,7 +68,7 @@ public sealed partial class ControlsPage : Page
     private void CreateModeButtons()
     {
         // Use Segoe UI Symbol for monochrome emoji, FontIcon for MDL2 glyphs
-        var modes = new (DaikinMode mode, string label, object icon)[]
+        var modes = new (DaikinMode mode, string label, UIElement icon)[]
         {
             (DaikinMode.Cool, "Cool", new TextBlock { Text = "❄", FontSize = 24, FontFamily = new FontFamily("Segoe UI Symbol"), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, -2, 0, 0) }),
             (DaikinMode.Heat, "Heat", new FontIcon { Glyph = "\uE706", FontSize = 20 }),
@@ -78,7 +81,7 @@ public sealed partial class ControlsPage : Page
         {
             var (mode, label, icon) = modes[i];
             
-            // Create ToggleButton with rounded corners - let WinUI handle visual states
+            // Create ToggleButton - default WinUI3 styling
             var button = new ToggleButton
             {
                 Tag = mode,
@@ -88,8 +91,18 @@ public sealed partial class ControlsPage : Page
                 Content = icon,
             };
             ToolTipService.SetToolTip(button, label);
-            
             button.Click += ModeButton_Click;
+            
+            // Wrap button in Grid with sunken overlay
+            var wrapper = new Grid();
+            wrapper.Children.Add(button);
+            
+            // Create sunken overlay (hidden by default)
+            var sunken = CreateSunkenOverlay();
+            sunken.Opacity = 0;
+            sunken.IsHitTestVisible = false;
+            wrapper.Children.Add(sunken);
+            _sunkenOverlays[mode] = sunken;
             
             // Create label
             var labelBlock = new TextBlock
@@ -99,9 +112,9 @@ public sealed partial class ControlsPage : Page
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
             
-            // Wrap in StackPanel for button + label
+            // StackPanel: wrapper, label
             var stack = new StackPanel { Spacing = 4 };
-            stack.Children.Add(button);
+            stack.Children.Add(wrapper);
             stack.Children.Add(labelBlock);
             
             Grid.SetColumn(stack, i);
@@ -110,6 +123,59 @@ public sealed partial class ControlsPage : Page
             _modeButtons[mode] = button;
             _modeLabels[mode] = labelBlock;
         }
+    }
+    
+    /// <summary>
+    /// Creates a sunken border effect using 4 edge rectangles.
+    /// Dark on top/left (shadow), light on bottom/right (highlight).
+    /// Deeper recess = thicker/darker shadows, fainter highlights.
+    /// </summary>
+    private static UIElement CreateSunkenOverlay()
+    {
+        var grid = new Grid();
+        
+        // Top edge - dark shadow (thicker = deeper)
+        var top = new Rectangle
+        {
+            Height = 4,
+            Fill = new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)),
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        
+        // Left edge - dark shadow (thicker = deeper)
+        var left = new Rectangle
+        {
+            Width = 4,
+            Fill = new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)),
+            VerticalAlignment = VerticalAlignment.Stretch,
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        
+        // Bottom edge - faint highlight (less light reaches deep floor)
+        var bottom = new Rectangle
+        {
+            Height = 1,
+            Fill = new SolidColorBrush(Color.FromArgb(25, 255, 255, 255)),
+            VerticalAlignment = VerticalAlignment.Bottom,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        
+        // Right edge - faint highlight
+        var right = new Rectangle
+        {
+            Width = 1,
+            Fill = new SolidColorBrush(Color.FromArgb(25, 255, 255, 255)),
+            VerticalAlignment = VerticalAlignment.Stretch,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        
+        grid.Children.Add(top);
+        grid.Children.Add(left);
+        grid.Children.Add(bottom);
+        grid.Children.Add(right);
+        
+        return grid;
     }
     
     private static Viewbox CreateSvgInViewbox(string uri)
@@ -334,6 +400,12 @@ public sealed partial class ControlsPage : Page
                 _modeButtons[mode].IsChecked = isSelected;
                 _modeLabels[mode].Foreground = isSelected ? primaryBrush : mutedBrush;
                 _modeLabels[mode].FontWeight = isSelected ? FontWeights.SemiBold : FontWeights.Normal;
+                
+                // Show/hide sunken overlay
+                if (_sunkenOverlays.TryGetValue(mode, out var overlay))
+                {
+                    overlay.Opacity = isSelected ? 1.0 : 0.0;
+                }
             }
             
             // Update temperature slider enabled state based on mode
