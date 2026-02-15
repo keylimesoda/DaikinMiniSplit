@@ -45,7 +45,7 @@ public sealed partial class MainPage : Page
             _controlsViewModel.PropertyChanged += ControlsViewModel_PropertyChanged;
             UpdatePowerButtonUI();
 
-            NavView.SelectedItem = NavView.MenuItems[0];
+            SelectTab("Controls");
 
             _ = _viewModel.ConnectAsync();
         }
@@ -72,23 +72,31 @@ public sealed partial class MainPage : Page
     }
 #endif
 
-    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void Tab_Click(object sender, RoutedEventArgs e)
     {
-        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
+        if (sender is Button btn && btn.Tag is string tag)
         {
-            if (tag == "Controls")
-            {
-                NavigateToControls();
-            }
-            else if (tag == "Schedule")
-            {
-                NavigateToSchedule();
-            }
-            else if (tag == "Diagnostics")
-            {
-                NavigateToDiagnostics();
-            }
+            SelectTab(tag);
         }
+    }
+
+    private void SelectTab(string tag)
+    {
+        // Move indicator to the selected column
+        int col = tag switch { "Schedule" => 1, "Diagnostics" => 2, _ => 0 };
+        Grid.SetColumn(TabIndicator, col);
+
+        // Update tab text opacity to show active state
+        TabControls.Opacity = col == 0 ? 1.0 : 0.6;
+        TabSchedule.Opacity = col == 1 ? 1.0 : 0.6;
+        TabDiagnostics.Opacity = col == 2 ? 1.0 : 0.6;
+
+        if (tag == "Controls")
+            NavigateToControls();
+        else if (tag == "Schedule")
+            NavigateToSchedule();
+        else if (tag == "Diagnostics")
+            NavigateToDiagnostics();
     }
 
     private void NavigateToControls()
@@ -209,7 +217,20 @@ public sealed partial class MainPage : Page
                 }
                 else
                 {
+#if __ANDROID__
+                    // On Android there's no hover, so show a subtle always-on glow
+                    // to hint the button is interactive
+                    var glowBrush = new Microsoft.UI.Xaml.Media.RadialGradientBrush();
+                    glowBrush.Center = new Windows.Foundation.Point(0.5, 0.5);
+                    glowBrush.RadiusX = 0.6;
+                    glowBrush.RadiusY = 0.6;
+                    glowBrush.GradientStops.Add(new GradientStop { Color = Color.FromArgb(40, 76, 140, 80), Offset = 0 });
+                    glowBrush.GradientStops.Add(new GradientStop { Color = Color.FromArgb(18, 76, 140, 80), Offset = 0.7 });
+                    glowBrush.GradientStops.Add(new GradientStop { Color = Colors.Transparent, Offset = 1.0 });
+                    PowerButtonBackground.Background = glowBrush;
+#else
                     PowerButtonBackground.Background = new SolidColorBrush(Colors.Transparent);
+#endif
                     PowerIcon.Foreground = new SolidColorBrush(Color.FromArgb(255, 120, 120, 120));
                 }
             }

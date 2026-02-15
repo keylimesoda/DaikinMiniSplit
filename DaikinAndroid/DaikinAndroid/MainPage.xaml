@@ -59,38 +59,53 @@
                 </Grid>
             </Grid>
 
-            <!-- Navigation -->
-            <NavigationView Grid.Row="1" 
-                            x:Name="NavView"
-                            IsBackButtonVisible="Collapsed"
-                            IsSettingsVisible="False"
-                            PaneDisplayMode="Top"
-                            Background="Transparent"
-                            SelectionChanged="NavView_SelectionChanged">
-                <NavigationView.Resources>
-                    <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent"/>
-                    <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="Transparent"/>
-                </NavigationView.Resources>
-                <NavigationView.MenuItems>
-                    <NavigationViewItem Content="Controls" Tag="Controls">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE9A1;"/>
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                    <NavigationViewItem Content="Schedule" Tag="Schedule">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE787;"/>
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                    <NavigationViewItem Content="Diagnostics" Tag="Diagnostics">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE9D9;"/>
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                </NavigationView.MenuItems>
+            <!-- Tab Bar -->
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <Frame x:Name="ContentFrame"/>
-            </NavigationView>
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="TabControls" Grid.Column="0" Click="Tab_Click" Tag="Controls"
+                            HorizontalAlignment="Stretch" Background="Transparent" BorderBrush="Transparent"
+                            Padding="0,10" HorizontalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE9A1;" FontSize="16"/>
+                            <TextBlock Text="Controls" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="TabSchedule" Grid.Column="1" Click="Tab_Click" Tag="Schedule"
+                            HorizontalAlignment="Stretch" Background="Transparent" BorderBrush="Transparent"
+                            Padding="0,10" HorizontalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE787;" FontSize="16"/>
+                            <TextBlock Text="Schedule" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="TabDiagnostics" Grid.Column="2" Click="Tab_Click" Tag="Diagnostics"
+                            HorizontalAlignment="Stretch" Background="Transparent" BorderBrush="Transparent"
+                            Padding="0,10" HorizontalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE9D9;" FontSize="16"/>
+                            <TextBlock Text="Diagnostics" VerticalAlignment="Center" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Active tab indicator -->
+                    <Border x:Name="TabIndicator" Grid.Column="0" Height="3" CornerRadius="1.5"
+                            VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
+                            Margin="12,0" Background="{StaticResource AccentBrush}"/>
+                </Grid>
+
+                <Frame x:Name="ContentFrame" Grid.Row="1"/>
+            </Grid>
         </Grid>
     </Grid>
 </Page>
