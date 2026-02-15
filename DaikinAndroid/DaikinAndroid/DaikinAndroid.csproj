@@ -35,6 +35,9 @@
     <UnoFeatures>
       SkiaRenderer;
     </UnoFeatures>
+
+    <!-- Embed assemblies so APK works without Fast Deployment -->
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
   </PropertyGroup>
 
   <ItemGroup>
