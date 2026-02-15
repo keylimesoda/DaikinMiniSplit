@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="DaikinAndroid.Views.DiagnosticsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Required">
+
+    <ScrollViewer>
+        <StackPanel Spacing="16" Padding="8">
+            
+            <!-- Outdoor & System Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Outdoor &amp; System" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <FontIcon Grid.Row="0" Grid.Column="0" Glyph="&#xE9CA;" Margin="0,0,12,8"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="OutsideTempText" Text="Outside Temp: --" Margin="0,0,0,8"/>
+
+                        <FontIcon Grid.Row="1" Grid.Column="0" Glyph="&#xE945;" Margin="0,0,12,8"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CompressorText" Text="Compressor: --" Margin="0,0,0,8"/>
+
+                        <FontIcon Grid.Row="2" Grid.Column="0" Glyph="&#xE946;" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SystemHealthText" Text="System Health: --"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            
+            <!-- System Status Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="System Status" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Power:" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="PowerStatus" Text="--"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Mode:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ModeStatus" Text="--" Margin="0,4,0,0"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Set Temp:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SetTempStatus" Text="--" Margin="0,4,0,0"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Actual Temp:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ActualTempStatus" Text="--" Margin="0,4,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Compressor Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Compressor" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Frequency:" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="CompressorFrequency" Text="-- Hz"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CompressorStatus" Text="--" Margin="0,4,0,0"/>
+                    </Grid>
+                    
+                    <ProgressBar x:Name="CompressorProgress" 
+                                 Minimum="0" 
+                                 Maximum="120" 
+                                 Value="0" 
+                                 Height="8"
+                                 CornerRadius="4"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Fan Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Fan" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Speed:" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="FanSpeedStatus" Text="--"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="RPM:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="FanRpmStatus" Text="N/A" Margin="0,4,0,0"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Swing:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SwingStatus" Text="--" Margin="0,4,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Device Information Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Device Information" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="IP Address:" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="IpAddressText" Text="--"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="MAC Address:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MacAddressText" Text="--" Margin="0,4,0,0"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Firmware:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="FirmwareText" Text="--" Margin="0,4,0,0"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Model:" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ModelText" Text="--" Margin="0,4,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Raw Sensor Data Expander -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <Expander x:Name="RawDataExpander" Header="Raw Sensor Data" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <TextBlock x:Name="RawSensorText" 
+                               Text="Loading..." 
+                               FontSize="11"
+                               TextWrapping="Wrap"/>
+                </Expander>
+            </Border>
+
+            <!-- Raw HTTP Responses -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    CornerRadius="8" Padding="20">
+                <Expander x:Name="RawHttpExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Raw HTTP Responses" VerticalAlignment="Center"/>
+                            <ProgressRing x:Name="ConnectingSpinner" Width="14" Height="14" IsActive="True" Visibility="Collapsed" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Name="RawHttpTimestamp" 
+                                   Text="--" 
+                                   FontSize="10"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <StackPanel>
+                            <TextBlock Text="/aircon/get_sensor_info" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            <TextBlock x:Name="RawSensorHttpText" 
+                                       Text="--" 
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="/aircon/get_control_info" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            <TextBlock x:Name="RawControlHttpText" 
+                                       Text="--" 
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="/common/basic_info" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            <TextBlock x:Name="RawBasicHttpText" 
+                                       Text="--" 
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <!-- Refresh Button -->
+            <Button x:Name="RefreshButton" 
+                    Content="REFRESH DATA" 
+                    HorizontalAlignment="Stretch"
+                    Height="50"
+                    Click="RefreshButton_Click">
+            </Button>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
