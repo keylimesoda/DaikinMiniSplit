@@ -44,9 +44,6 @@ public partial class App : Application
     {
         MainWindow = new Window();
         MainAppWindow = MainWindow;
-#if DEBUG
-        MainWindow.UseStudio();
-#endif
 
         if (MainWindow.Content is not Frame rootFrame)
         {
