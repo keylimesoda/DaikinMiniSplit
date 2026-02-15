@@ -43,7 +43,7 @@ public sealed partial class MainWindow : Window
         {
             // Set window size
             var appWindow = GetAppWindowForCurrentWindow();
-            appWindow.Resize(new SizeInt32(450, 880));
+            appWindow.Resize(new SizeInt32(450, 920));
             
             // Get MainViewModel from DI
             _viewModel = App.Services.GetRequiredService<MainViewModel>();
