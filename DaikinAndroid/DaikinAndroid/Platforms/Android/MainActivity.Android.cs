@@ -18,6 +18,14 @@ public class MainActivity : Microsoft.UI.Xaml.ApplicationActivity
         global::AndroidX.Core.SplashScreen.SplashScreen.InstallSplashScreen(this);
 
         base.OnCreate(savedInstanceState);
+
+        // Force dark status bar to match dark theme
+        if (Window != null)
+        {
+#pragma warning disable CA1422 // SetStatusBarColor is deprecated on API 35+ but still works
+            Window.SetStatusBarColor(Android.Graphics.Color.Black);
+#pragma warning restore CA1422
+        }
     }
 
 }

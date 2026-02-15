@@ -30,7 +30,10 @@ public sealed partial class MainPage : Page
 #if WINDOWS
         SetupWindowsTitleBar();
 #else
+        // Hide the Windows title bar spacer on non-Windows platforms
         AppTitleBar.Visibility = Visibility.Collapsed;
+        // Add top padding for Android status bar safe area
+        MainContentGrid.Padding = new Thickness(16, 40, 16, 16);
 #endif
 
         try
